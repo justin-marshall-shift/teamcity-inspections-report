@@ -22,7 +22,5 @@ namespace teamcity_inspections_report.Options
 
         [Option('o', "output", Required = true, HelpText = "Folder where the reports will be archived")]
         public string Output { get; set; }
-
-
     }
 }

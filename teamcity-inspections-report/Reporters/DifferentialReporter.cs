@@ -100,8 +100,10 @@ namespace teamcity_inspections_report.Reporters
             {
                 Header = new HangoutCardHeader
                 {
-                    Title = "Duplicate report",
-                    Subtitle = $"{nowUtc.ToLocalTime():D}"
+                    Title = "<b>Duplicate daily report</b>",
+                    Subtitle = $"{nowUtc.ToLocalTime():D}",
+                    ImageStyle = "IMAGE",
+                    ImageUrl = "https://icon-icons.com/icons2/1278/PNG/128/1497562286-gemini-zodiac-sign_85087.png"
                 },
                 Sections = sections
             };
@@ -182,7 +184,7 @@ namespace teamcity_inspections_report.Reporters
                         {
                             TextParagraph = new HangoutCardText
                             {
-                                Text = $"<b>{newDuplicates.Length}</b> duplication{(newDuplicates.Length == 1 ? "has" : "s have")} been introduced."
+                                Text = $"+ <b>{newDuplicates.Length}</b> duplication{(newDuplicates.Length == 1 ? "has" : "s have")} been introduced."
                             }
                         }
                     }
@@ -200,7 +202,7 @@ namespace teamcity_inspections_report.Reporters
                         {
                             TextParagraph = new HangoutCardText
                             {
-                                Text = $"<b>{removedDuplicates.Length}</b> duplication{(removedDuplicates.Length == 1 ? "has" : "s have")} been removed."
+                                Text = $"- <b>{removedDuplicates.Length}</b> duplication{(removedDuplicates.Length == 1 ? "has" : "s have")} been removed."
                             }
                         }
                     }
