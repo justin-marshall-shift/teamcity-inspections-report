@@ -1,4 +1,5 @@
-﻿using CommandLine;
+﻿using System.Collections.Generic;
+using CommandLine;
 
 namespace teamcity_inspections_report.Options
 {
@@ -35,5 +36,24 @@ namespace teamcity_inspections_report.Options
 
         [Option('h', "threshold", Required = true, HelpText = "Threshold file for the projects")]
         public string Threshold { get; set; }
+    }
+
+    [Verb("deprecate", HelpText = "Check status on github of deprecated status check")]
+    public class DeprecatedOptions
+    {
+        [Option('u', "url", Required = true, HelpText = "TeamCity server url.")]
+        public string TeamCityUrl { get; set; }
+
+        [Option('t', "token", Required = true, HelpText = "TeamCity REST API token.")]
+        public string TeamCityToken { get; set; }
+
+        [Option('c', "configurations", Required = true, HelpText = "List of configuration that have been deprecated for status checks", Hidden = true, Separator = ';')]
+        public IEnumerable<string> Configurations { get; set; }
+
+        [Option('g', "githubToken", Required = true, HelpText = "Github access token")]
+        public string GithubToken { get; set; }
+
+        [Option('b', "buildId", Required = true, HelpText = "Build id")]
+        public long BuildId { get; set; }
     }
 }

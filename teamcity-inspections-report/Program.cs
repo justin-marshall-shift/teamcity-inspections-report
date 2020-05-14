@@ -5,6 +5,7 @@ using System.Linq;
 using CommandLine;
 using teamcity_inspections_report.Options;
 using teamcity_inspections_report.Reporters;
+using teamcity_inspections_report.Validators;
 
 namespace teamcity_inspections_report
 {
@@ -12,10 +13,18 @@ namespace teamcity_inspections_report
     {
         public static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions>(args)
+            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions>(args)
                 .WithParsed<DifferentialOptions>(Run)
                 .WithParsed<InspectionOptions>(Run)
+                .WithParsed<DeprecatedOptions>(Run)
                 .WithNotParsed(Report);
+        }
+
+        private static void Run(DeprecatedOptions options)
+        {
+            var validator = new GithubStatusValidator(options);
+
+            validator.RunAsync().Wait();
         }
 
         private static void Run(InspectionOptions options)
