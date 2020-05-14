@@ -32,5 +32,8 @@ namespace teamcity_inspections_report.Options
     {
         [Option('f', "folder", Required = true, HelpText = "Folder where to find the inspection report")]
         public string Folder { get; set; }
+
+        [Option('h', "threshold", Required = true, HelpText = "Threshold file for the projects")]
+        public string Threshold { get; set; }
     }
 }

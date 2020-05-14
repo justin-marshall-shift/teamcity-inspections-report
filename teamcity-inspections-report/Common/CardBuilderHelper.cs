@@ -47,12 +47,12 @@ namespace teamcity_inspections_report.Common
                     {
                         Buttons = new[]
                         {
-                            new HangoutCardButton
+                            new HangoutCardTextButton
                             {
-                                TextButton = new HangoutCardTextButton
+                                TextButton = new HangoutCardButton
                                 {
                                     Text = "Go to TeamCity build",
-                                    OnClick = new HangoutCardTextButtonAction
+                                    OnClick = new HangoutOnClickAction
                                     {
                                         OpenLink = new HangoutCardLink
                                         {
@@ -65,6 +65,28 @@ namespace teamcity_inspections_report.Common
                     }
                 }
             };
+        }
+
+        public static HangoutCardSection GetKeyValueSection(string topLabel, string content, string bottomLabel, string iconUrl)
+        {
+            return new HangoutCardSection
+            {
+                Widgets = new HangoutCardWidget[]
+                {
+                    new HangoutKeyValueWidget
+                    {
+                        KeyValue = new HangoutKeyValue
+                        {
+                            TopLabel = topLabel,
+                            Content = content,
+                            BottomLabel = bottomLabel,
+                            ContentMultiline = true,
+                            IconUrl = iconUrl
+                        }
+                    }
+                }
+            };
+
         }
     }
 }

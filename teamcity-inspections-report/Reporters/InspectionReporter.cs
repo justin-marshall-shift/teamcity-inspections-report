@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using CsvHelper;
 using Newtonsoft.Json;
 using teamcity_inspections_report.Common;
 using teamcity_inspections_report.Duplicates;
@@ -22,9 +24,10 @@ namespace teamcity_inspections_report.Reporters
         private readonly string _teamCityUrl;
         private readonly string _teamCityToken;
         private readonly string _output;
+        private readonly string _threshold;
 
         public InspectionReporter(string currentFilePath, string webhook, long buildId, string teamCityUrl,
-            string teamCityToken, string output)
+            string teamCityToken, string output, string threshold)
         {
             _currentFilePath = currentFilePath;
             _webhook = webhook;
@@ -32,6 +35,7 @@ namespace teamcity_inspections_report.Reporters
             _teamCityUrl = teamCityUrl;
             _teamCityToken = teamCityToken;
             _output = output;
+            _threshold = threshold;
         }
 
         public async Task RunAsync()
@@ -40,6 +44,11 @@ namespace teamcity_inspections_report.Reporters
 
             var baseFile = RetrieveBaseFile();
             Console.WriteLine($"Retrieving base file: {baseFile}");
+
+            if (!File.Exists(_threshold))
+            {
+                Console.WriteLine("No threshold file, we will skip the check by project");
+            }
 
             var baseIssues = new Dictionary<string, Issue>();
             if (File.Exists(baseFile))
@@ -57,7 +66,7 @@ namespace teamcity_inspections_report.Reporters
 
             using (var httpClient = new HttpClient())
             {
-                foreach (var message in await GetMessages(newIssues, removedIssues, nowUtc, currentIssues.Count))
+                foreach (var message in await GetMessages(newIssues, removedIssues, nowUtc, currentIssues.Values.ToArray()))
                 {
                     Console.WriteLine($"Webhook: {_webhook}");
                     var response = await httpClient.PostAsync(_webhook, message);
@@ -85,9 +94,9 @@ namespace teamcity_inspections_report.Reporters
             Console.WriteLine("Copy of new base file");
         }
 
-        private async Task<HttpContent[]> GetMessages(Issue[] newIssues, Issue[] removedIssues, DateTime nowUtc, int total)
+        private async Task<HttpContent[]> GetMessages(Issue[] newIssues, Issue[] removedIssues, DateTime nowUtc, Issue[] currentIssues)
         {
-            var sections = await GetSections(newIssues, removedIssues, total);
+            var sections = await GetSections(newIssues, removedIssues, currentIssues);
 
             Console.WriteLine("Creating header section of message");
             var card = new HangoutCard
@@ -104,13 +113,14 @@ namespace teamcity_inspections_report.Reporters
             return new HttpContent[] { new StringContent(content) };
         }
 
-        private async Task<HangoutCardSection[]> GetSections(Issue[] newIssues, Issue[] removedIssues, int total)
+        private async Task<HangoutCardSection[]> GetSections(Issue[] newIssues, Issue[] removedIssues, Issue[] currentIssues)
         {
+            var total = currentIssues.Length;
             var hasNew = newIssues.Length > 0;
             var hasLess = removedIssues.Length > 0;
 
-            var hasNewErrors = newIssues.Any(i => i.Severity == Severity.ERROR);
-            var hasRemovedErrors = removedIssues.Any(i => i.Severity == Severity.ERROR);
+            var countOfErrors = newIssues.Count(i => i.Severity == Severity.ERROR);
+            var countOfRemovedErrors = removedIssues.Count(i => i.Severity == Severity.ERROR);
 
             Console.WriteLine($"Creating section of message for all {total} violations");
             var sections = new List<HangoutCardSection>
@@ -127,36 +137,78 @@ namespace teamcity_inspections_report.Reporters
             if (hasNew)
             {
                 Console.WriteLine($"Adding section for the {newIssues.Length} new violations");
-                sections.Add(CardBuilderHelper.GetTextParagraphSection(
-                    $"+ <b>{newIssues.Length}</b> violation{(newIssues.Length == 1 ? "has" : "s have")} been introduced."));
-            }
+                var message =
+                    $"+ <b>{newIssues.Length}</b> violation{(newIssues.Length == 1 ? " has" : "s have")} been introduced.";
 
-            if (hasNewErrors)
-            {
-                var errors = newIssues.Where(i => i.Severity == Severity.ERROR).ToArray();
-                Console.WriteLine($"Adding section for the {errors.Length} new errors");
-                sections.Add(CardBuilderHelper.GetTextParagraphSection(
-                    $"<font color=\"#ff0000\">+ <b>{errors.Length}</b> error{(errors.Length == 1 ? "has" : "s have")} been introduced.</font>"));
+                if (countOfErrors > 1)
+                {
+                    message += $"\r\n<font color=\"#ff0000\">(of which <b>{countOfErrors}</b> {(countOfErrors > 1 ? "are errors" : "is an error")})</font>";
+                }
+
+                sections.Add(CardBuilderHelper.GetTextParagraphSection(message));
             }
 
             if (hasLess)
             {
                 Console.WriteLine($"Adding section for the {removedIssues.Length} removed violations");
-                sections.Add(CardBuilderHelper.GetTextParagraphSection(
-                    $"- <b>{removedIssues.Length}</b> violation{(removedIssues.Length == 1 ? "has" : "s have")} been removed."));
+                var message =
+                    $"- <b>{removedIssues.Length}</b> violation{(removedIssues.Length == 1 ? " has" : "s have")} been removed.";
+
+                if (countOfRemovedErrors > 1)
+                {
+                    message += $"\r\n<font color=\"#00ff00\">(of which <b>{countOfRemovedErrors}</b> {(countOfRemovedErrors > 1 ? "were errors" : "was an error")})</font>";
+                }
+
+                sections.Add(CardBuilderHelper.GetTextParagraphSection(message));
             }
 
-            if (hasRemovedErrors)
-            {
-                var errors = removedIssues.Where(i => i.Severity == Severity.ERROR).ToArray();
-                Console.WriteLine($"Adding section for the {errors.Length} removed errors");
-                sections.Add(CardBuilderHelper.GetTextParagraphSection(
-                    $"<font color=\"#00ff00\">- <b>{errors.Length}</b> error{(errors.Length == 1 ? "has" : "s have")} been removed.</font>"));
-            }
-
+            EnforceNumberOfErrorsAndNumberOfViolationsByProject(sections, currentIssues);
+            
             sections.Add(await CardBuilderHelper.GetLinkSectionToTeamCityBuild(_teamCityToken, _teamCityUrl, _buildId, "&tab=Inspection"));
 
             return sections.ToArray();
+        }
+
+        private void EnforceNumberOfErrorsAndNumberOfViolationsByProject(List<HangoutCardSection> sections, Issue[] currentIssues)
+        {
+            var numberOfErrors = currentIssues.Count(i => i.Severity == Severity.ERROR);
+            if (numberOfErrors > 0)
+            {
+                sections.Add(CardBuilderHelper.GetKeyValueSection("Error(s)", $"{numberOfErrors} error{(numberOfErrors > 1 ? "s were":" was" )} detected by the inspection.", string.Empty, "https://icon-icons.com/icons2/1380/PNG/32/vcsconflicting_93497.png"));
+            }
+
+            if (!File.Exists(_threshold)) return;
+
+            var failingProjects = new List<ProjectState>();
+            var projectStates = currentIssues.GroupBy(i => i.Project)
+                .Select(g => new ProjectState { Project = g.Key, Count = g.Count()}).ToDictionary(x => x.Project);
+
+            using (var reader = new StreamReader(_threshold))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                Console.WriteLine($"Checking the following inspections thresholds by project (see {Path.GetFileName(_threshold)}):");
+                foreach (var record in csv.GetRecords<ProjectThreshold>())
+                {
+                    Console.WriteLine($"{record.Project}: {record.Threshold}");
+
+                    if (!projectStates.TryGetValue(record.Project, out var project) || project.Count <= record.Threshold)
+                        continue;
+
+                    failingProjects.Add(project);
+                    sections.Add(CardBuilderHelper.GetKeyValueSection("Threshold was reached by", project.Project, $"{project.Count} violations", "https://icon-icons.com/icons2/1024/PNG/32/warning_256_icon-icons.com_76006.png"));
+                }
+            }
+
+            Console.WriteLine("Found the following inspections count per project:");
+            foreach (var projectState in projectStates.Values)
+            {
+                Console.WriteLine($"{projectState.Project}: {projectState.Count}");
+            }
+
+            if (failingProjects.Any())
+            {
+                Console.WriteLine($"{(failingProjects.Count == 1 ? "This project was" : "These tests were" )} found above {(failingProjects.Count == 1 ? "its" : "their")} threshold:\r\n{string.Join("\r\n", failingProjects.Select(f => f.Project))}");
+            }
         }
 
         private Dictionary<string, Issue> Load(string filePath)
@@ -223,11 +275,6 @@ namespace teamcity_inspections_report.Reporters
 
         private Issue GetIssue(string projectName, XElement issueNode, IReadOnlyDictionary<string, IssueType> issueTypes)
         {
-            var issueSeverity = issueNode.Attribute("Severity");
-            var severity = issueSeverity == null ?
-                issueTypes[(string) issueNode.Attribute("TypeId")].Severity 
-              : Enum.Parse<Severity>((string) issueSeverity);
-
             return new Issue
             {
                 File = (string)issueNode.Attribute("File"),
@@ -236,7 +283,7 @@ namespace teamcity_inspections_report.Reporters
                 Offset = GetRange((string)issueNode.Attribute("Offset")),
                 Project = projectName,
                 TypeId = (string)issueNode.Attribute("TypeId"),
-                Severity = severity
+                Severity = issueTypes[(string)issueNode.Attribute("TypeId")].Severity
             };
         }
 

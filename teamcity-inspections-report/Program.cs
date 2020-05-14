@@ -28,7 +28,7 @@ namespace teamcity_inspections_report
 
             Console.WriteLine($"[Analysis] File: {file}");
 
-            var reporter = new InspectionReporter(file, options.Webhook, options.BuildId, options.TeamCityUrl, options.TeamCityToken, options.Output);
+            var reporter = new InspectionReporter(file, options.Webhook, options.BuildId, options.TeamCityUrl, options.TeamCityToken, options.Output, options.Threshold);
             reporter.RunAsync().Wait();
         }
 

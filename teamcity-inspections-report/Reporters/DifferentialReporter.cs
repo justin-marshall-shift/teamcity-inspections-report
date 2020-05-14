@@ -100,7 +100,10 @@ namespace teamcity_inspections_report.Reporters
             };
             var content = JsonConvert.SerializeObject(new HangoutCardMessage
             {
-                Cards = new []{ card }
+                Cards = new[] {card}
+            }, new JsonSerializerSettings
+            {
+                DefaultValueHandling = DefaultValueHandling.Ignore
             });
 
             Console.WriteLine($"Sending message to Hangout:\r\n{content}");

@@ -51,7 +51,31 @@ namespace teamcity_inspections_report.Hangout
     public class HangoutCardClickWidget : HangoutCardWidget
     {
         [JsonProperty("buttons")]
-        public HangoutCardButton[] Buttons { get; set; }
+        public HangoutCardTextButton[] Buttons { get; set; }
+    }
+
+    public class HangoutKeyValueWidget : HangoutCardWidget
+    {
+        [JsonProperty("keyValue")]
+        public HangoutKeyValue KeyValue { get; set; }
+    }
+
+    public class HangoutKeyValue
+    {
+        [JsonProperty("topLabel")]
+        public string TopLabel { get; set; }
+        [JsonProperty("content")]
+        public string Content { get; set; }
+        [JsonProperty("contentMultiline")]
+        public bool ContentMultiline { get; set; }
+        [JsonProperty("bottomLabel")]
+        public string BottomLabel { get; set; }
+        [JsonProperty("iconUrl")]
+        public string IconUrl { get; set; }
+        [JsonProperty("onClick")]
+        public HangoutOnClickAction OnClick { get; set; }
+        [JsonProperty("button")]
+        public HangoutCardTextButton Button { get; set; }
     }
 
     public class HangoutCardImageWidget : HangoutCardWidget
@@ -72,22 +96,22 @@ namespace teamcity_inspections_report.Hangout
         public string ImageUrl { get; set; }
     }
 
-    public class HangoutCardButton
+    public class HangoutCardTextButton
     {
         [JsonProperty("textButton")]
-        public HangoutCardTextButton TextButton { get; set; }
+        public HangoutCardButton TextButton { get; set; }
     }
 
-    public class HangoutCardTextButton
+    public class HangoutCardButton
     {
         [JsonProperty("text")]
         public string Text { get; set; }
 
         [JsonProperty("onClick")]
-        public HangoutCardTextButtonAction OnClick { get; set; }
+        public HangoutOnClickAction OnClick { get; set; }
     }
 
-    public class HangoutCardTextButtonAction
+    public class HangoutOnClickAction
     {
         [JsonProperty("openLink")]
         public HangoutCardLink OpenLink { get; set; }
