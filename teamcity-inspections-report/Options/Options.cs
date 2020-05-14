@@ -2,12 +2,8 @@
 
 namespace teamcity_inspections_report.Options
 {
-    [Verb("duplicates", HelpText = "Compare the results from 2 duplicates reports.")]
-    public class DifferentialOptions
+    public abstract class CommonOptions
     {
-        [Option('f', "folder", Required = true, HelpText = "Folder where to find the duplicate report")]
-        public string Current { get; set; }
-
         [Option('w', "webhook", Required = true, HelpText = "Webhook of the room where you want to post messages")]
         public string Webhook { get; set; }
 
@@ -22,5 +18,19 @@ namespace teamcity_inspections_report.Options
 
         [Option('o', "output", Required = true, HelpText = "Folder where the reports will be archived")]
         public string Output { get; set; }
+    }
+
+    [Verb("duplicates", HelpText = "Compute and report the differential of duplication analysis.")]
+    public class DifferentialOptions : CommonOptions
+    {
+        [Option('f', "folder", Required = true, HelpText = "Folder where to find the duplicate report")]
+        public string Current { get; set; }
+    }
+
+    [Verb("inspection", HelpText = "Compute and report the differential of duplication analysis.")]
+    public class InspectionOptions : CommonOptions
+    {
+        [Option('f', "folder", Required = true, HelpText = "Folder where to find the inspection report")]
+        public string Folder { get; set; }
     }
 }
