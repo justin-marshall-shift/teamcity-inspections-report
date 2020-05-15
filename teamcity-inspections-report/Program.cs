@@ -33,7 +33,7 @@ namespace teamcity_inspections_report
             var file = files.FirstOrDefault();
 
             if (file == null)
-                throw new ArgumentNullException(nameof(file), "No report file in directory");
+                throw new ArgumentNullException(nameof(file), $"No report file in directory {options.Folder}");
 
             Console.WriteLine($"[Analysis] File: {file}");
 
@@ -55,7 +55,7 @@ namespace teamcity_inspections_report
             var file = files.FirstOrDefault();
 
             if (file == null)
-                throw new ArgumentNullException(nameof(file), "No report file in directory");
+                throw new ArgumentNullException(nameof(file), $"No report file in directory {options.Current}");
 
             Console.WriteLine($"[Analysis] File: {file}");
 

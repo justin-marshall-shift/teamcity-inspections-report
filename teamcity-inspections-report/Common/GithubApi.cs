@@ -5,19 +5,19 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace teamcity_inspections_report.Common
 {
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum StatusCheckType
     {
-        [JsonProperty("error")]
-        Error,
-        [JsonProperty("failure")]
-        Failure,
-        [JsonProperty("success")]
-        Success,
-        [JsonProperty("pending")]
-        Pending
+        // ReSharper disable InconsistentNaming
+        error,
+        failure,
+        success,
+        pending
+        // ReSharper restore InconsistentNaming
     }
 
     public class StatusCheck

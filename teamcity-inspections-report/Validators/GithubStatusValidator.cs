@@ -53,7 +53,7 @@ namespace teamcity_inspections_report.Validators
 
                 await github.SetStatusCheckAsync(prBuild.Revisions.Revision.First().Version, new StatusCheck
                 {
-                    State = StatusCheckType.Success,
+                    State = StatusCheckType.success,
                     TargetUrl = newBuildUrl,
                     Description = "Deprecated - This check has been replaced by a daily build",
                     Context = $"{oldBuildType.Name} ({oldBuildType.Project.Name})"
