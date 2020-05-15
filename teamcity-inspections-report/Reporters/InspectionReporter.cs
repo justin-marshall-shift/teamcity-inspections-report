@@ -1,16 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Linq;
-using CsvHelper;
 using Newtonsoft.Json;
 using teamcity_inspections_report.Common;
-using teamcity_inspections_report.Duplicates;
 using teamcity_inspections_report.Hangout;
 using teamcity_inspections_report.Inspection;
 
@@ -50,23 +45,13 @@ namespace teamcity_inspections_report.Reporters
                 Console.WriteLine("No threshold file, we will skip the check by project");
             }
 
-            var baseIssues = new Dictionary<string, Issue>();
-            if (File.Exists(baseFile))
-            {
-                baseIssues = Load(baseFile);
-            }
-            var baseKeys = baseIssues.Keys.ToHashSet();
-            var currentIssues = Load(_currentFilePath);
-            var currentKeys = currentIssues.Keys.ToHashSet();
-            
-            var newIssues = currentIssues.Where(x => !baseKeys.Contains(x.Key)).Select(x => x.Value).ToArray();
-            var removedIssues = baseIssues.Where(x => !currentKeys.Contains(x.Key)).Select(x => x.Value).ToArray();
+            var comparer = new InspectionsComparator(baseFile, _currentFilePath, _threshold);
 
             var nowUtc = DateTime.UtcNow;
 
             using (var httpClient = new HttpClient())
             {
-                foreach (var message in await GetMessages(newIssues, removedIssues, nowUtc, currentIssues.Values.ToArray()))
+                foreach (var message in await GetMessages(comparer, nowUtc))
                 {
                     Console.WriteLine($"Webhook: {_webhook}");
                     var response = await httpClient.PostAsync(_webhook, message);
@@ -94,9 +79,10 @@ namespace teamcity_inspections_report.Reporters
             Console.WriteLine("Copy of new base file");
         }
 
-        private async Task<HttpContent[]> GetMessages(Issue[] newIssues, Issue[] removedIssues, DateTime nowUtc, Issue[] currentIssues)
+        private async Task<HttpContent[]> GetMessages(InspectionsComparator comparer, DateTime nowUtc)
         {
-            var sections = await GetSections(newIssues, removedIssues, currentIssues);
+            var (newIssues, removedIssues, currentIssues) = comparer.GetComparison();
+            var sections = await GetSections(newIssues, removedIssues, currentIssues, comparer);
 
             Console.WriteLine("Creating header section of message");
             var card = new HangoutCard
@@ -113,7 +99,7 @@ namespace teamcity_inspections_report.Reporters
             return new HttpContent[] { new StringContent(content) };
         }
 
-        private async Task<HangoutCardSection[]> GetSections(Issue[] newIssues, Issue[] removedIssues, Issue[] currentIssues)
+        private async Task<HangoutCardSection[]> GetSections(Issue[] newIssues, Issue[] removedIssues, Issue[] currentIssues, InspectionsComparator comparer)
         {
             var total = currentIssues.Length;
             var hasNew = newIssues.Length > 0;
@@ -140,7 +126,7 @@ namespace teamcity_inspections_report.Reporters
                 var message =
                     $"+ <b>{newIssues.Length}</b> violation{(newIssues.Length == 1 ? " has" : "s have")} been introduced.";
 
-                if (countOfErrors > 1)
+                if (countOfErrors > 0)
                 {
                     message += $"\r\n<font color=\"#ff0000\">(of which <b>{countOfErrors}</b> {(countOfErrors > 1 ? "are errors" : "is an error")})</font>";
                 }
@@ -154,7 +140,7 @@ namespace teamcity_inspections_report.Reporters
                 var message =
                     $"- <b>{removedIssues.Length}</b> violation{(removedIssues.Length == 1 ? " has" : "s have")} been removed.";
 
-                if (countOfRemovedErrors > 1)
+                if (countOfRemovedErrors > 0)
                 {
                     message += $"\r\n<font color=\"#00ff00\">(of which <b>{countOfRemovedErrors}</b> {(countOfRemovedErrors > 1 ? "were errors" : "was an error")})</font>";
                 }
@@ -162,140 +148,21 @@ namespace teamcity_inspections_report.Reporters
                 sections.Add(CardBuilderHelper.GetTextParagraphSection(message));
             }
 
-            EnforceNumberOfErrorsAndNumberOfViolationsByProject(sections, currentIssues);
-            
+             var (numberOfErrors, failedProjects) = comparer.EnforceNumberOfErrorsAndNumberOfViolationsByProject(currentIssues);
+             if (numberOfErrors > 0)
+             {
+                 sections.Add(CardBuilderHelper.GetKeyValueSection("Error(s)", $"{numberOfErrors} error{(numberOfErrors > 1 ? "s were" : " was")} detected by the inspection.", string.Empty, "https://icon-icons.com/icons2/1380/PNG/32/vcsconflicting_93497.png"));
+             }
+
+             foreach (var failedProject in failedProjects)
+             {
+
+                 sections.Add(CardBuilderHelper.GetKeyValueSection("Threshold was reached by", failedProject.Project, $"{failedProject.Count} violations", "https://icon-icons.com/icons2/1024/PNG/32/warning_256_icon-icons.com_76006.png"));
+            }
+
             sections.Add(await CardBuilderHelper.GetLinkSectionToTeamCityBuild(_teamCityToken, _teamCityUrl, _buildId, "&tab=Inspection"));
 
             return sections.ToArray();
-        }
-
-        private void EnforceNumberOfErrorsAndNumberOfViolationsByProject(List<HangoutCardSection> sections, Issue[] currentIssues)
-        {
-            var numberOfErrors = currentIssues.Count(i => i.Severity == Severity.ERROR);
-            if (numberOfErrors > 0)
-            {
-                sections.Add(CardBuilderHelper.GetKeyValueSection("Error(s)", $"{numberOfErrors} error{(numberOfErrors > 1 ? "s were":" was" )} detected by the inspection.", string.Empty, "https://icon-icons.com/icons2/1380/PNG/32/vcsconflicting_93497.png"));
-            }
-
-            if (!File.Exists(_threshold)) return;
-
-            var failingProjects = new List<ProjectState>();
-            var projectStates = currentIssues.GroupBy(i => i.Project)
-                .Select(g => new ProjectState { Project = g.Key, Count = g.Count()}).ToDictionary(x => x.Project);
-
-            using (var reader = new StreamReader(_threshold))
-            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-            {
-                Console.WriteLine($"Checking the following inspections thresholds by project (see {Path.GetFileName(_threshold)}):");
-                foreach (var record in csv.GetRecords<ProjectThreshold>())
-                {
-                    Console.WriteLine($"{record.Project}: {record.Threshold}");
-
-                    if (!projectStates.TryGetValue(record.Project, out var project) || project.Count <= record.Threshold)
-                        continue;
-
-                    failingProjects.Add(project);
-                    sections.Add(CardBuilderHelper.GetKeyValueSection("Threshold was reached by", project.Project, $"{project.Count} violations", "https://icon-icons.com/icons2/1024/PNG/32/warning_256_icon-icons.com_76006.png"));
-                }
-            }
-
-            Console.WriteLine("Found the following inspections count per project:");
-            foreach (var projectState in projectStates.Values)
-            {
-                Console.WriteLine($"{projectState.Project}: {projectState.Count}");
-            }
-
-            if (failingProjects.Any())
-            {
-                Console.WriteLine($"{(failingProjects.Count == 1 ? "This project was" : "These tests were" )} found above {(failingProjects.Count == 1 ? "its" : "their")} threshold:\r\n{string.Join("\r\n", failingProjects.Select(f => f.Project))}");
-            }
-        }
-
-        private Dictionary<string, Issue> Load(string filePath)
-        {
-            var baseElement = XElement.Load(filePath);
-            var issueTypeNodes = baseElement.Descendants("IssueType");
-            var projectNodes = baseElement.Descendants("Project");
-            var issueTypes = issueTypeNodes.Select(GetIssueType).ToDictionary(i => i.Id);
-            return projectNodes.SelectMany(i => GetIssues(i, issueTypes)).ToDictionary(i => i.Key);
-        }
-
-        private static IssueType GetIssueType(XElement issueType)
-        {
-            return new IssueType
-            {
-                Id = (string)issueType.Attribute("Id"),
-                Category = (string)issueType.Attribute("Category"),
-                CategoryId = (string)issueType.Attribute("CategoryId"),
-                Description = (string)issueType.Attribute("Description"),
-                Severity = Enum.Parse<Severity>((string)issueType.Attribute("Severity")),
-                Wiki = (string)issueType.Attribute("WikiUrl")
-            };
-        }
-
-        private Issue[] GetIssues(XElement project, Dictionary<string, IssueType> issueTypes)
-        {
-            var projectName = (string)project.Attribute("Name");
-            var issueNodes = project.Descendants("Issue").Select(x => GetIssue(projectName, x, issueTypes)).ToArray();
-            SetKey(issueNodes);
-            return issueNodes;
-        }
-
-        private static void SetKey(IEnumerable<Issue> issues)
-        {
-            var groups = issues.GroupBy(i => i.File);
-
-            foreach (var group in groups)
-            {
-                var computedKeys = new HashSet<string>();
-                foreach (var issue in group)
-                {
-                    issue.Key = ComputeKey(issue, computedKeys);
-                }
-            }
-        }
-
-        private static string ComputeKey(Issue issue, ISet<string> computedKeys)
-        {
-            var sb = new StringBuilder();
-            sb.Append(issue.File);
-            sb.Append('-');
-            sb.Append(HashHelper.ComputeHash(issue.Message));
-
-            var key = sb.ToString();
-
-            while (computedKeys.Contains(key))
-            {
-                key += "#";
-            }
-
-            computedKeys.Add(key);
-            return key;
-        }
-
-        private Issue GetIssue(string projectName, XElement issueNode, IReadOnlyDictionary<string, IssueType> issueTypes)
-        {
-            return new Issue
-            {
-                File = (string)issueNode.Attribute("File"),
-                Line = issueNode.Attribute("Line") == null ? 0 : (int)issueNode.Attribute("Line"),
-                Message = (string)issueNode.Attribute("Message"),
-                Offset = GetRange((string)issueNode.Attribute("Offset")),
-                Project = projectName,
-                TypeId = (string)issueNode.Attribute("TypeId"),
-                Severity = issueTypes[(string)issueNode.Attribute("TypeId")].Severity
-            };
-        }
-
-        private static Range GetRange(string offset)
-        {
-            var parts = offset.Split('-', StringSplitOptions.RemoveEmptyEntries);
-
-            return new Range
-            {
-                End = int.Parse(parts[1]),
-                Start = int.Parse(parts[0])
-            };
         }
 
         private string RetrieveBaseFile()

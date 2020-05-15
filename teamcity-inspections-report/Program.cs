@@ -13,11 +13,18 @@ namespace teamcity_inspections_report
     {
         public static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions>(args)
+            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions>(args)
                 .WithParsed<DifferentialOptions>(Run)
                 .WithParsed<InspectionOptions>(Run)
                 .WithParsed<DeprecatedOptions>(Run)
+                .WithParsed<BlameOptions>(Run)
                 .WithNotParsed(Report);
+        }
+
+        private static void Run(BlameOptions options)
+        {
+            var reporter = new GitReporter(options);
+            reporter.RunAsync().Wait();
         }
 
         private static void Run(DeprecatedOptions options)

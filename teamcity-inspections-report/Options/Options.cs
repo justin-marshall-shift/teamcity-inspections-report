@@ -56,4 +56,20 @@ namespace teamcity_inspections_report.Options
         [Option('b', "buildId", Required = true, HelpText = "Build id")]
         public long BuildId { get; set; }
     }
+
+    [Verb("blame", HelpText = "Blame or congratulate users on results of the inspections")]
+    public class BlameOptions
+    {
+        [Option('g', "git", Required = true, HelpText = "Git repository path")]
+        public string Git { get; set; }
+
+        [Option('o', "old", Required = true, HelpText = "Old inspection report path")]
+        public string Old { get; set; }
+
+        [Option('h', "threshold", Required = true, HelpText = "Threshold file for the projects")]
+        public string Threshold { get; set; }
+
+        [Option('n', "new", Required = true, HelpText = "New inspection report path")]
+        public string New { get; set; }
+    }
 }
