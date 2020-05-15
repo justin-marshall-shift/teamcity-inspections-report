@@ -13,12 +13,19 @@ namespace teamcity_inspections_report
     {
         public static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions>(args)
+            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesOptions>(args)
                 .WithParsed<DifferentialOptions>(Run)
                 .WithParsed<InspectionOptions>(Run)
                 .WithParsed<DeprecatedOptions>(Run)
                 .WithParsed<BlameOptions>(Run)
+                .WithParsed<ReleaseNotesOptions>(Run)
                 .WithNotParsed(Report);
+        }
+
+        private static void Run(ReleaseNotesOptions options)
+        {
+            var generator = new ReleaseNotesGenerator(options);
+            generator.RunAsync().Wait();
         }
 
         private static void Run(BlameOptions options)
@@ -44,7 +51,7 @@ namespace teamcity_inspections_report
 
             Console.WriteLine($"[Analysis] File: {file}");
 
-            var reporter = new InspectionReporter(file, options.Webhook, options.BuildId, options.TeamCityUrl, options.TeamCityToken, options.Output, options.Threshold);
+            var reporter = new InspectionReporter(options, file);
             reporter.RunAsync().Wait();
         }
 
@@ -58,15 +65,15 @@ namespace teamcity_inspections_report
 
         private static void Run(DifferentialOptions options)
         {
-            var files = Directory.EnumerateFiles(options.Current, "dupfinder-report-*.xml");
+            var files = Directory.EnumerateFiles(options.Folder, "dupfinder-report-*.xml");
             var file = files.FirstOrDefault();
 
             if (file == null)
-                throw new ArgumentNullException(nameof(file), $"No report file in directory {options.Current}");
+                throw new ArgumentNullException(nameof(file), $"No report file in directory {options.Folder}");
 
             Console.WriteLine($"[Analysis] File: {file}");
 
-            var reporter = new DifferentialReporter(file, options.Webhook, options.BuildId, options.TeamCityUrl, options.TeamCityToken, options.Output);
+            var reporter = new DifferentialReporter(options, file);
             reporter.RunAsync().Wait();
         }
     }

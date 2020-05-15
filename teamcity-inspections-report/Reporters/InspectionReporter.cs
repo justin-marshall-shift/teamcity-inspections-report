@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using teamcity_inspections_report.Common;
 using teamcity_inspections_report.Hangout;
 using teamcity_inspections_report.Inspection;
+using teamcity_inspections_report.Options;
 
 namespace teamcity_inspections_report.Reporters
 {
@@ -16,21 +17,18 @@ namespace teamcity_inspections_report.Reporters
         private readonly string _currentFilePath;
         private readonly string _webhook;
         private readonly long _buildId;
-        private readonly string _teamCityUrl;
-        private readonly string _teamCityToken;
+        private readonly TeamCityServiceClient _teamcityService;
         private readonly string _output;
         private readonly string _threshold;
 
-        public InspectionReporter(string currentFilePath, string webhook, long buildId, string teamCityUrl,
-            string teamCityToken, string output, string threshold)
+        public InspectionReporter(InspectionOptions options, string file)
         {
-            _currentFilePath = currentFilePath;
-            _webhook = webhook;
-            _buildId = buildId;
-            _teamCityUrl = teamCityUrl;
-            _teamCityToken = teamCityToken;
-            _output = output;
-            _threshold = threshold;
+            _currentFilePath = file;
+            _webhook = options.Webhook;
+            _buildId = options.BuildId;
+            _output = options.Output;
+            _threshold = options.Threshold;
+            _teamcityService = new TeamCityServiceClient(options.TeamCityUrl, options.TeamCityToken);
         }
 
         public async Task RunAsync()
@@ -148,19 +146,20 @@ namespace teamcity_inspections_report.Reporters
                 sections.Add(CardBuilderHelper.GetTextParagraphSection(message));
             }
 
-             var (numberOfErrors, failedProjects) = comparer.EnforceNumberOfErrorsAndNumberOfViolationsByProject(currentIssues);
-             if (numberOfErrors > 0)
-             {
-                 sections.Add(CardBuilderHelper.GetKeyValueSection("Error(s)", $"{numberOfErrors} error{(numberOfErrors > 1 ? "s were" : " was")} detected by the inspection.", string.Empty, "https://icon-icons.com/icons2/1380/PNG/32/vcsconflicting_93497.png"));
-             }
-
-             foreach (var failedProject in failedProjects)
-             {
-
-                 sections.Add(CardBuilderHelper.GetKeyValueSection("Threshold was reached by", failedProject.Project, $"{failedProject.Count} violations", "https://icon-icons.com/icons2/1024/PNG/32/warning_256_icon-icons.com_76006.png"));
+            var (numberOfErrors, failedProjects) = comparer.EnforceNumberOfErrorsAndNumberOfViolationsByProject(currentIssues);
+            if (numberOfErrors > 0)
+            {
+                sections.Add(CardBuilderHelper.GetKeyValueSection("Error(s)", $"{numberOfErrors} error{(numberOfErrors > 1 ? "s were" : " was")} detected by the inspection.", string.Empty, "https://icon-icons.com/icons2/1380/PNG/32/vcsconflicting_93497.png"));
             }
 
-            sections.Add(await CardBuilderHelper.GetLinkSectionToTeamCityBuild(_teamCityToken, _teamCityUrl, _buildId, "&tab=Inspection"));
+            foreach (var failedProject in failedProjects)
+            {
+
+                sections.Add(CardBuilderHelper.GetKeyValueSection("Threshold was reached by", failedProject.Project, $"{failedProject.Count} violations", "https://icon-icons.com/icons2/1024/PNG/32/warning_256_icon-icons.com_76006.png"));
+            }
+
+            var url = await _teamcityService.GetTeamCityBuildUrl(_buildId, "&tab=Inspection");
+            sections.Add(await CardBuilderHelper.GetLinkSectionToUrl(url, "Go to TeamCity build"));
 
             return sections.ToArray();
         }

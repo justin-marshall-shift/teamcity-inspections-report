@@ -14,22 +14,20 @@ namespace teamcity_inspections_report.Validators
 
         private readonly long _buildId;
         private readonly string _gitToken;
-        private readonly string _teamcityToken;
-        private readonly string _teamcityUrl;
+        private readonly TeamCityServiceClient _teamcityService;
         private readonly string[] _configs;
 
         public GithubStatusValidator(DeprecatedOptions options)
         {
             _buildId = options.BuildId;
             _gitToken = options.GithubToken;
-            _teamcityToken = options.TeamCityToken;
-            _teamcityUrl = options.TeamCityUrl;
             _configs = options.Configurations.ToArray();
+            _teamcityService = new TeamCityServiceClient(options.TeamCityUrl, options.TeamCityToken);
         }
 
         public async Task RunAsync()
         {
-            var prBuild = await TeamCityHelper.GetTeamCityBuild(_teamcityToken, _teamcityUrl, _buildId);
+            var prBuild = await _teamcityService.GetTeamCityBuild(_buildId);
 
             var prNumber = GetBranchId(prBuild.BranchName);
 
@@ -47,9 +45,8 @@ namespace teamcity_inspections_report.Validators
                 var oldConfiguration = parts[0];
                 var newConfiguration = parts[1];
 
-                var oldBuildType = await TeamCityHelper.GetTeamCityBuildType(_teamcityToken, _teamcityUrl, oldConfiguration);
-                var newBuildUrl =
-                    await TeamCityHelper.GetTeamCityLastBuildUrlOfBuildType(_teamcityToken, _teamcityUrl, newConfiguration);
+                var oldBuildType = await _teamcityService.GetTeamCityBuildType(oldConfiguration);
+                var newBuildUrl = await _teamcityService.GetTeamCityLastBuildUrlOfBuildType(newConfiguration);
 
                 await github.SetStatusCheckAsync(prBuild.Revisions.Revision.First().Version, new StatusCheck
                 {

@@ -34,10 +34,8 @@ namespace teamcity_inspections_report.Common
             };
         }
 
-        public static async Task<HangoutCardSection> GetLinkSectionToTeamCityBuild(string token, string url, long buildId, string tab)
+        public static async Task<HangoutCardSection> GetLinkSectionToUrl(string url, string message)
         {
-            var teamcityBuildUrl = await TeamCityHelper.GetTeamCityBuildUrl(token, url, buildId, tab);
-
             Console.WriteLine("Adding link to teamcity");
             return new HangoutCardSection
             {
@@ -51,12 +49,12 @@ namespace teamcity_inspections_report.Common
                             {
                                 TextButton = new HangoutCardButton
                                 {
-                                    Text = "Go to TeamCity build",
+                                    Text = message,
                                     OnClick = new HangoutOnClickAction
                                     {
                                         OpenLink = new HangoutCardLink
                                         {
-                                            Url = teamcityBuildUrl
+                                            Url = url
                                         }
                                     }
                                 }

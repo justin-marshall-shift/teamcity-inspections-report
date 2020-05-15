@@ -25,7 +25,7 @@ namespace teamcity_inspections_report.Options
     public class DifferentialOptions : CommonOptions
     {
         [Option('f', "folder", Required = true, HelpText = "Folder where to find the duplicate report")]
-        public string Current { get; set; }
+        public string Folder { get; set; }
     }
 
     [Verb("inspection", HelpText = "Compute and report the differential of duplication analysis.")]
@@ -71,5 +71,18 @@ namespace teamcity_inspections_report.Options
 
         [Option('n', "new", Required = true, HelpText = "New inspection report path")]
         public string New { get; set; }
+    }
+
+    [Verb("releaseNotes", HelpText = "Generate the release notes of your build")]
+    public class ReleaseNotesOptions
+    {
+        [Option('b', "build", Required = true, HelpText = "Id of the inspection build")]
+        public long BuildId { get; set; }
+
+        [Option('u', "url", Required = true, HelpText = "TeamCity server url.")]
+        public string TeamCityUrl { get; set; }
+
+        [Option('t', "token", Required = true, HelpText = "TeamCity REST API token.")]
+        public string TeamCityToken { get; set; }
     }
 }

@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using teamcity_inspections_report.Common;
 using teamcity_inspections_report.Duplicates;
 using teamcity_inspections_report.Hangout;
+using teamcity_inspections_report.Options;
 using File = System.IO.File;
 
 namespace teamcity_inspections_report.Reporters
@@ -19,18 +20,16 @@ namespace teamcity_inspections_report.Reporters
         private readonly string _currentFilePath;
         private readonly string _webhook;
         private readonly long _buildId;
-        private readonly string _teamCityUrl;
-        private readonly string _teamCityToken;
         private readonly string _output;
+        private readonly TeamCityServiceClient _teamcityService;
 
-        public DifferentialReporter(string currentFilePath, string webhook, long buildId, string teamCityUrl, string teamCityToken, string output)
+        public DifferentialReporter(DifferentialOptions options, string file)
         {
-            _currentFilePath = currentFilePath;
-            _webhook = webhook;
-            _buildId = buildId;
-            _teamCityUrl = teamCityUrl;
-            _teamCityToken = teamCityToken;
-            _output = output;
+            _currentFilePath = file;
+            _teamcityService = new TeamCityServiceClient(options.TeamCityUrl, options.TeamCityToken);
+            _webhook = options.Webhook;
+            _buildId = options.BuildId;
+            _output = options.Output;
         }
 
         public async Task RunAsync()
@@ -141,7 +140,8 @@ namespace teamcity_inspections_report.Reporters
                     $"- <b>{removedDuplicates.Length}</b> duplication{(removedDuplicates.Length == 1 ? "has" : "s have")} been removed."));
             }
 
-            sections.Add(await CardBuilderHelper.GetLinkSectionToTeamCityBuild(_teamCityToken, _teamCityUrl, _buildId, "&tab=Duplicator"));
+            var url = await _teamcityService.GetTeamCityBuildUrl(_buildId, "&tab=Duplicator");
+            sections.Add(await CardBuilderHelper.GetLinkSectionToUrl(url, "Go to TeamCity build"));
 
             return sections.ToArray();
         }
