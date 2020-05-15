@@ -57,7 +57,7 @@ namespace teamcity_inspections_report.Options
         public long BuildId { get; set; }
     }
 
-    [Verb("blame", HelpText = "Blame or congratulate users on results of the inspections")]
+    [Verb("blame", HelpText = "[WIP] Blame or congratulate users on results of the inspections")]
     public class BlameOptions
     {
         [Option('g', "git", Required = true, HelpText = "Git repository path")]
@@ -73,7 +73,7 @@ namespace teamcity_inspections_report.Options
         public string New { get; set; }
     }
 
-    [Verb("releaseNotes", HelpText = "Generate the release notes of your build")]
+    [Verb("releaseNotes", HelpText = "[WIP] Generate the release notes of develop")]
     public class ReleaseNotesOptions
     {
         [Option('b', "build", Required = true, HelpText = "Id of the inspection build")]
@@ -84,5 +84,20 @@ namespace teamcity_inspections_report.Options
 
         [Option('t', "token", Required = true, HelpText = "TeamCity REST API token.")]
         public string TeamCityToken { get; set; }
+
+        [Option('o', "output", Required = true, HelpText = "Folder where the reports will be archived")]
+        public string Output { get; set; }
+
+        [Option('a', "audit", Required = true, HelpText = "Path of the audit file")]
+        public string Audit { get; set; }
+        
+        [Option('l', "loginJira", Required = true, HelpText = "Jira login")]
+        public string Login { get; set; }
+        
+        [Option('p', "PasswordJira", Required = true, HelpText = "Jira password")]
+        public string Password { get; set; }
+
+        [Option('g', "githubToken", Required = true, HelpText = "Github access token")]
+        public string GithubToken { get; set; }
     }
 }

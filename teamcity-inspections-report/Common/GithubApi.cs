@@ -34,6 +34,10 @@ namespace teamcity_inspections_report.Common
 
     public class GithubApi
     {
+        private const string Repository = "shift-technology/shift";
+        private const string UserAgent = "Shift-Teamcity-Reporter";
+        private const string UserAgentVersion = "1.0";
+
         private const string GithubApiUri = "https://api.github.com";
 
         static GithubApi()
@@ -41,18 +45,12 @@ namespace teamcity_inspections_report.Common
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
         }
 
-        public GithubApi(string userAgent, string userAgentVersion, string accessToken, string repository)
+        public GithubApi(string accessToken)
         {
-            UserAgent = userAgent;
-            UserAgentVersion = userAgentVersion;
             AccessToken = accessToken;
-            Repository = repository;
         }
 
-        private string UserAgent { get; }
-        private string UserAgentVersion { get; }
         private string AccessToken { get; }
-        private string Repository { get; }
         private string BaseUri => $"{GithubApiUri}/repos/{Repository}";
 
         public async Task SetStatusCheckAsync(string commitHash, StatusCheck statusCheck)

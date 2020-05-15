@@ -8,10 +8,6 @@ namespace teamcity_inspections_report.Validators
 {
     public class GithubStatusValidator
     {
-        private const string Repository = "shift-technology/shift";
-        private const string UserAgent = "Shift-Teamcity-Reporter";
-        private const string UserAgentVersion = "1.0";
-
         private readonly long _buildId;
         private readonly string _gitToken;
         private readonly TeamCityServiceClient _teamcityService;
@@ -37,7 +33,7 @@ namespace teamcity_inspections_report.Validators
                 return;
             }
 
-            var github = new GithubApi(UserAgent, UserAgentVersion, _gitToken, Repository);
+            var github = new GithubApi(_gitToken);
 
             foreach (var configs in _configs)
             {
