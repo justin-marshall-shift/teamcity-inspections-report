@@ -100,4 +100,20 @@ namespace teamcity_inspections_report.Options
         [Option('g', "githubToken", Required = true, HelpText = "Github access token")]
         public string GithubToken { get; set; }
     }
+
+    [Verb("releaseNotesMetadata", HelpText = "Generate the metadata files for releases notes")]
+    public class ReleaseNotesMetadataOptions
+    {
+        [Option('b', "build", Required = true, HelpText = "Id of the inspection build")]
+        public long BuildId { get; set; }
+
+        [Option('u', "url", Required = true, HelpText = "TeamCity server url.")]
+        public string TeamCityUrl { get; set; }
+
+        [Option('t', "token", Required = true, HelpText = "TeamCity REST API token.")]
+        public string TeamCityToken { get; set; }
+
+        [Option('m', "metadata", Required = true, HelpText = "Path to the metadata file")]
+        public string Metadata { get; set; }
+    }
 }

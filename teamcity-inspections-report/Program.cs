@@ -13,13 +13,20 @@ namespace teamcity_inspections_report
     {
         public static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesOptions>(args)
+            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesOptions, ReleaseNotesMetadataOptions>(args)
                 .WithParsed<DifferentialOptions>(Run)
                 .WithParsed<InspectionOptions>(Run)
                 .WithParsed<DeprecatedOptions>(Run)
                 .WithParsed<BlameOptions>(Run)
                 .WithParsed<ReleaseNotesOptions>(Run)
+                .WithParsed<ReleaseNotesMetadataOptions>(Run)
                 .WithNotParsed(Report);
+        }
+
+        private static void Run(ReleaseNotesMetadataOptions options)
+        {
+            var generator = new ReleaseNotesMetadataGenerator(options);
+            generator.RunAsync().Wait();
         }
 
         private static void Run(ReleaseNotesOptions options)
