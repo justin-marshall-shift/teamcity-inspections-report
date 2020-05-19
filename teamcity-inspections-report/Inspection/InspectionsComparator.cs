@@ -7,7 +7,6 @@ using System.Text;
 using System.Xml.Linq;
 using CsvHelper;
 using teamcity_inspections_report.Common;
-using teamcity_inspections_report.Duplicates;
 
 namespace teamcity_inspections_report.Inspection
 {
@@ -132,7 +131,7 @@ namespace teamcity_inspections_report.Inspection
         {
             var numberOfErrors = currentIssues.Count(i => i.Severity == Severity.ERROR);
 
-            if (!File.Exists(_threshold)) return (numberOfErrors, new List<ProjectState>());
+            if (!string.IsNullOrEmpty(_threshold) && File.Exists(_threshold)) return (numberOfErrors, new List<ProjectState>());
 
             var failingProjects = new List<ProjectState>();
             var projectStates = currentIssues.GroupBy(i => i.Project)

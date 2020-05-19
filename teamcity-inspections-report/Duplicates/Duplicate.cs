@@ -1,4 +1,6 @@
-﻿namespace teamcity_inspections_report.Duplicates
+﻿using teamcity_inspections_report.Common;
+
+namespace teamcity_inspections_report.Duplicates
 {
     public class Duplicate
     {
@@ -14,11 +16,4 @@
         public Range Lines { get; set; }
         public string Text { get; set; }
     }
-
-    public class Range
-    {
-        public int Start { get; set; }
-        public int End { get; set; }
-    }
-
 }

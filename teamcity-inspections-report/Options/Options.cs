@@ -57,7 +57,7 @@ namespace teamcity_inspections_report.Options
         public long BuildId { get; set; }
     }
 
-    [Verb("blame", HelpText = "[WIP] Blame or congratulate users on results of the inspections")]
+    [Verb("blame", HelpText = "Blame or congratulate users on results of the inspections")]
     public class BlameOptions
     {
         [Option('g', "git", Required = true, HelpText = "Git repository path")]
@@ -66,11 +66,17 @@ namespace teamcity_inspections_report.Options
         [Option('o', "old", Required = true, HelpText = "Old inspection report path")]
         public string Old { get; set; }
 
-        [Option('h', "threshold", Required = true, HelpText = "Threshold file for the projects")]
-        public string Threshold { get; set; }
-
         [Option('n', "new", Required = true, HelpText = "New inspection report path")]
         public string New { get; set; }
+
+        [Option('b', "baseCommit", Required = true, HelpText = "BaseCommit")]
+        public string BaseCommit { get; set; }
+
+        [Option('h', "headCommit", Required = true, HelpText = "BaseCommit")]
+        public string HeadCommit { get; set; }
+
+        [Option('s', "solution", Required = false, HelpText = "Relative path to the solution analyzed")]
+        public string Solution { get; set; }
     }
 
     [Verb("releaseNotes", HelpText = "[WIP] Generate the release notes of develop")]

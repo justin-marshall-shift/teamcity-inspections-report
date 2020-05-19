@@ -1,4 +1,4 @@
-﻿using teamcity_inspections_report.Duplicates;
+﻿using teamcity_inspections_report.Common;
 
 namespace teamcity_inspections_report.Inspection
 {
