@@ -23,7 +23,7 @@ namespace teamcity_inspections_report.Inspection
             _threshold = threshold;
         }
 
-        public (Issue[] newIssues, Issue[] removedIssues, Issue[] currentIssues ) GetComparison()
+        public (Issue[] newIssues, Issue[] removedIssues, Issue[] currentIssues) GetComparison()
         {
             var baseIssues = new Dictionary<string, Issue>();
             if (File.Exists(_formerInspection))

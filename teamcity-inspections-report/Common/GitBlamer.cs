@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using teamcity_inspections_report.Common.GitHelper;
+using teamcity_inspections_report.Duplicates;
 using teamcity_inspections_report.Inspection;
 
 namespace teamcity_inspections_report.Common
@@ -76,8 +77,6 @@ namespace teamcity_inspections_report.Common
 
                 foreach (var fragment in group.Fragments)
                 {
-                    var logss = await _git.Log(group.Key, baseCommit, headCommit, fragment.Lines);
-
                     for (var line = fragment.Lines.Start; line <= fragment.Lines.End; line++)
                     {
                         if (!potentialBlames.TryGetValue(line, out var blame))
@@ -132,6 +131,18 @@ namespace teamcity_inspections_report.Common
                 },
                 Score = i.Severity == Severity.WARNING ? 1 : 10
             }).ToArray());
+
+            return collaborators.OrderByDescending(c => c.Contributions.Sum(co => co.Score)).Take(number).ToArray();
+        }
+
+        public async Task<Contributor[]> GetRemovalContributors(string baseCommit, string headCommit, Duplicate[] removedDuplicates, int number, Func<string, string> computePathToRepo)
+        {
+            var collaborators = await GetRemovalContributors(baseCommit, headCommit, removedDuplicates.SelectMany(d => d.Fragments.Select(f => new CodeFragment
+            {
+                Path = computePathToRepo(f.FileName),
+                Lines = f.Lines,
+                Score = d.Cost / d.Fragments.Length
+            })).ToArray());
 
             return collaborators.OrderByDescending(c => c.Contributions.Sum(co => co.Score)).Take(number).ToArray();
         }

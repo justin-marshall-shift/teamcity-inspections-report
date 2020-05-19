@@ -19,6 +19,9 @@ namespace teamcity_inspections_report.Options
 
         [Option('o', "output", Required = true, HelpText = "Folder where the reports will be archived")]
         public string Output { get; set; }
+
+        [Option('g', "git", Required = true, HelpText = "Git repository path")]
+        public string Git { get; set; }
     }
 
     [Verb("duplicates", HelpText = "Compute and report the differential of duplication analysis.")]
@@ -36,6 +39,9 @@ namespace teamcity_inspections_report.Options
 
         [Option('h', "threshold", Required = true, HelpText = "Threshold file for the projects")]
         public string Threshold { get; set; }
+
+        [Option('s', "solution", Required = false, HelpText = "Relative path to the solution analyzed")]
+        public string Solution { get; set; }
     }
 
     [Verb("deprecate", HelpText = "Check status on github of deprecated status check")]

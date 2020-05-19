@@ -8,10 +8,15 @@ namespace teamcity_inspections_report.Common
     {
         public static HangoutCardHeader GetCardHeader(string title, DateTime nowUtc, string imageUrl)
         {
+            return GetCardHeader(title, $"{nowUtc.ToLocalTime():D}", imageUrl);
+        }
+
+        public static HangoutCardHeader GetCardHeader(string title, string subtitle, string imageUrl)
+        {
             return new HangoutCardHeader
             {
                 Title = title,
-                Subtitle = $"{nowUtc.ToLocalTime():D}",
+                Subtitle = subtitle,
                 ImageStyle = "IMAGE",
                 ImageUrl = imageUrl
             };
@@ -36,6 +41,7 @@ namespace teamcity_inspections_report.Common
 
         public static async Task<HangoutCardSection> GetLinkSectionToUrl(string url, string message)
         {
+            await Task.Yield();
             Console.WriteLine("Adding link to teamcity");
             return new HangoutCardSection
             {

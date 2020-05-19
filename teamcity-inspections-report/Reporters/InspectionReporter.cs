@@ -20,6 +20,15 @@ namespace teamcity_inspections_report.Reporters
         private readonly TeamCityServiceClient _teamcityService;
         private readonly string _output;
         private readonly string _threshold;
+        private readonly string _gitPath;
+        private readonly string _relativeSolutionPath;
+
+        private readonly Dictionary<int, string> _ranks = new Dictionary<int, string>
+        {
+            {1, "https://icon-icons.com/icons2/847/PNG/128/olympic_medal_gold_icon-icons.com_67221.png"},
+            {2, "https://icon-icons.com/icons2/847/PNG/128/olympic_medal_silver_icon-icons.com_67220.png"},
+            {3, "https://icon-icons.com/icons2/847/PNG/128/olympic_medal_bronze_icon-icons.com_67222.png"}
+        };
 
         public InspectionReporter(InspectionOptions options, string file)
         {
@@ -29,6 +38,8 @@ namespace teamcity_inspections_report.Reporters
             _output = options.Output;
             _threshold = options.Threshold;
             _teamcityService = new TeamCityServiceClient(options.TeamCityUrl, options.TeamCityToken);
+            _gitPath = options.Git;
+            _relativeSolutionPath = options.Solution;
         }
 
         public async Task RunAsync()
@@ -77,6 +88,55 @@ namespace teamcity_inspections_report.Reporters
             Console.WriteLine("Copy of new base file");
         }
 
+        private async Task<HangoutCard> GetLeaderBoardCard(InspectionsComparator comparator)
+        {
+            try
+            {
+                var (_, removedIssues, _) = comparator.GetComparison();
+
+                var blamer = new GitBlamer(_gitPath);
+
+                var currentBuild = await _teamcityService.GetTeamCityBuild(_buildId);
+                var previousBuild = await _teamcityService.GetTeamCityLastBuildOfBuildType(currentBuild.BuildTypeId);
+
+                var baseCommit = previousBuild.Revisions.Revision.First().Version;
+                var headCommit = currentBuild.Revisions.Revision.First().Version;
+
+                var contributors = await blamer.GetRemovalContributors(baseCommit, headCommit, removedIssues, 3, ComputePathToRepo);
+
+                var sections = new List<HangoutCardSection>();
+                var rank = 1;
+                foreach (var contributor in contributors)
+                {
+                    sections.Add(CardBuilderHelper.GetKeyValueSection("Violations have been removed by", contributor.Name, $"for a cost of {contributor.Contributions.Sum(f => f.Score)}", _ranks[rank]));
+                    rank++;
+                }
+
+                return new HangoutCard
+                {
+                    Header = CardBuilderHelper.GetCardHeader("Podium", "Who removed violations", "https://icon-icons.com/icons2/9/PNG/128/podium_1511.png"),
+                    Sections = sections.ToArray()
+                };
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Failed to retrieve best contributors");
+            }
+            return null;
+        }
+
+        private string ComputePathToRepo(string relativePath)
+        {
+            if (string.IsNullOrEmpty(_relativeSolutionPath))
+                return relativePath;
+
+            var solutionFolder = Path.GetDirectoryName(_relativeSolutionPath);
+
+            var path = Path.GetFullPath(Path.Combine(_gitPath, solutionFolder, relativePath));
+
+            return path.Replace(_gitPath, string.Empty).Trim('/', '\\');
+        }
+
         private async Task<HttpContent[]> GetMessages(InspectionsComparator comparer, DateTime nowUtc)
         {
             var (newIssues, removedIssues, currentIssues) = comparer.GetComparison();
@@ -88,9 +148,16 @@ namespace teamcity_inspections_report.Reporters
                 Header = CardBuilderHelper.GetCardHeader("<b>Inspection daily report</b>", nowUtc, "https://icon-icons.com/icons2/624/PNG/128/Inspection-80_icon-icons.com_57310.png"),
                 Sections = sections
             };
+
+            var card2 = await GetLeaderBoardCard(comparer);
+
+            var cards = new List<HangoutCard> { card };
+            if (card2 != null)
+                cards.Add(card2);
+
             var content = JsonConvert.SerializeObject(new HangoutCardMessage
             {
-                Cards = new[] { card }
+                Cards = cards.ToArray()
             });
 
             Console.WriteLine($"Sending message to Hangout:\r\n{content}");
