@@ -42,6 +42,25 @@ namespace teamcity_inspections_report.Options
 
         [Option('s', "solution", Required = false, HelpText = "Relative path to the solution analyzed")]
         public string Solution { get; set; }
+
+        [Option('l', "login", Required = false, Hidden = true, HelpText = "SMTP account login")]
+        public string Login { get; set; }
+
+        [Option('p', "password", Required = false, Hidden = true, HelpText = "SMTP account password")]
+        public string Password { get; set; }
+    }
+
+    [Verb("mail", HelpText = "Test the sending of a mail")]
+    public class MailTestOptions
+    {
+        [Option('l', "login", Required = true, HelpText = "SMTP account login")]
+        public string Login { get; set; }
+
+        [Option('p', "password", Required = true, HelpText = "SMTP account password")]
+        public string Password { get; set; }
+
+        [Option('m', "mail", Required = true, HelpText = "Mail to.")]
+        public string MailTo { get; set; }
     }
 
     [Verb("deprecate", HelpText = "Check status on github of deprecated status check")]
@@ -127,5 +146,8 @@ namespace teamcity_inspections_report.Options
 
         [Option('m', "metadata", Required = true, HelpText = "Path to the metadata file")]
         public string Metadata { get; set; }
+
+        [Option('w', "webhook", Required = true, HelpText = "Webhook of the room where you want to post messages")]
+        public string Webhook { get; set; }
     }
 }

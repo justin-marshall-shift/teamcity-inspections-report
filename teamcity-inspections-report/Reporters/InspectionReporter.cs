@@ -22,6 +22,7 @@ namespace teamcity_inspections_report.Reporters
         private readonly string _threshold;
         private readonly string _gitPath;
         private readonly string _relativeSolutionPath;
+        private readonly SoftwareQualityMailNotifier _mailNotifier;
 
         private readonly Dictionary<int, string> _ranks = new Dictionary<int, string>
         {
@@ -40,6 +41,7 @@ namespace teamcity_inspections_report.Reporters
             _teamcityService = new TeamCityServiceClient(options.TeamCityUrl, options.TeamCityToken);
             _gitPath = options.Git;
             _relativeSolutionPath = options.Solution;
+            _mailNotifier = new SoftwareQualityMailNotifier(options.Login, options.Password);
         }
 
         public async Task RunAsync()
@@ -77,7 +79,7 @@ namespace teamcity_inspections_report.Reporters
             if (File.Exists(baseFile))
             {
                 var archive = Path.Combine(_output,
-                    $"inspections-{nowUtc.AddDays(-1).ToLocalTime():yyyy_MM_dd}.xml");
+                    $"inspections-{nowUtc.AddDays(-1).ToLocalTime():yyyy_MM_dd_hhmm}.xml");
                 var baseFileInfo = new FileInfo(baseFile);
                 baseFileInfo.CopyTo(archive, true);
                 Console.WriteLine($"Backup of base file to {archive}");
@@ -86,6 +88,93 @@ namespace teamcity_inspections_report.Reporters
             var fileInfo = new FileInfo(_currentFilePath);
             fileInfo.CopyTo(baseFile, true);
             Console.WriteLine("Copy of new base file");
+
+            await ManageErrorsAndThreshold(comparer);
+        }
+
+        private async Task ManageErrorsAndThreshold(InspectionsComparator comparer)
+        {
+            var taskMail = SendErrorsAndThresholdThroughMail(comparer);
+            var taskJira = CreateJiraTasks(comparer);
+
+            await Task.WhenAll(taskMail, taskJira);
+        }
+
+        private async Task CreateJiraTasks(InspectionsComparator comparer)
+        {
+            await Task.Yield();
+            Console.WriteLine("Jira tasks creation [WIP]");
+
+            try
+            {
+                Console.WriteLine("End of Jira tasks creation");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to create tasks. Reason: {e.Message}");
+            }
+        }
+
+        private async Task SendErrorsAndThresholdThroughMail(InspectionsComparator comparer)
+        {
+            if (!_mailNotifier.IsSetUp)
+            {
+                Console.WriteLine("The Software Quality mail notifier is not set up");
+                return;
+            }
+
+            var (newIssues, _, _) = comparer.GetComparison();
+            var newErrors = newIssues.Where(i => i.Severity == Severity.ERROR).ToArray();
+
+            var blamer = new GitBlamer(_gitPath);
+            var (_, headCommit) = await _teamcityService.ComputeCommitRange(_buildId);
+            var contributors = await blamer.GetNewContributors(headCommit, newErrors, newErrors.Length, ComputePathToRepo);
+
+            foreach (var contributor in contributors)
+            {
+                try
+                {
+                    Console.WriteLine($"Sending mail to {contributor.Name} for errors in inspection");
+                    var body = await GetBody(contributor.Contributions, contributor.Name);
+                    await _mailNotifier.SendMail("Errors in daily inspection", contributor.Mail, contributor.Name, body);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Failed to send mail to {contributor.Name}: {e.Message}");
+                }
+            }
+        }
+
+        private async Task<string> GetBody(HashSet<CodeFragment> contributions, string name)
+        {
+            var files = contributions.Select(f => f.Path).Distinct();
+
+            var url = await _teamcityService.GetTeamCityBuildUrl(_buildId, "&tab=Inspection", false);
+
+            var body =
+                $@"<body style=""margin: 0; padding: 0;"">
+ <table border=""1"" cellpadding=""0"" cellspacing=""0"" width=""100%"">
+  <tr>
+   <td>
+    Hello {name},
+
+    New errors have been introduced in the last <a href=""{url}"">daily inspection</a>.
+Can you have a look please?
+It seems you contributed to the following file(s):
+{string.Join("\r\n", files)}
+
+If you received this mail by error, please <a href=""mailto:justin.marshall@shift-technology.com,christophe.guilhou@shift-technology.com&subject=Bad attribution"">notify us</a>.
+
+Thank you,
+Best regards,
+
+Shift Quality Team
+     </td>
+  </tr>
+ </table>
+</body>";
+
+            return body;
         }
 
         private async Task<HangoutCard> GetLeaderBoardCard(InspectionsComparator comparator)
@@ -96,11 +185,7 @@ namespace teamcity_inspections_report.Reporters
 
                 var blamer = new GitBlamer(_gitPath);
 
-                var currentBuild = await _teamcityService.GetTeamCityBuild(_buildId);
-                var previousBuild = await _teamcityService.GetTeamCityLastBuildOfBuildType(currentBuild.BuildTypeId);
-
-                var baseCommit = previousBuild.Revisions.Revision.First().Version;
-                var headCommit = currentBuild.Revisions.Revision.First().Version;
+                var (baseCommit, headCommit) = await _teamcityService.ComputeCommitRange(_buildId);
 
                 var contributors = await blamer.GetRemovalContributors(baseCommit, headCommit, removedIssues, 3, ComputePathToRepo);
 

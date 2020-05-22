@@ -12,6 +12,8 @@ namespace teamcity_inspections_report.Duplicates
         private readonly string _formerInspection;
         private readonly string _currentInspection;
 
+        private readonly IDictionary<string,string> _forbiddenStrings = new Dictionary<string, string>{{"&#x1A;", "oe"}};
+
         public DuplicateComparator(string formerInspection, string currentInspection)
         {
             _formerInspection = formerInspection;
@@ -33,11 +35,20 @@ namespace teamcity_inspections_report.Duplicates
             return (newDuplicates, removedDuplicates, currentDuplicates.Values.ToArray());
         }
 
-        private static Duplicate[] Load(string filePath)
+        private Duplicate[] Load(string filePath)
         {
-            var baseElement = XElement.Load(filePath);
-            var duplicateNodes = baseElement.Descendants("Duplicate");
-            return duplicateNodes.Select(GetDuplicate).ToArray();
+            // TODO modify this code for a more clean solution
+            var text = File.ReadAllText(filePath);
+            foreach (var (key, value) in _forbiddenStrings)
+            {
+                text = text.Replace(key, value);
+            }
+            using (var textReader = new StringReader(text))
+            {
+                var baseElement = XElement.Load(textReader);
+                var duplicateNodes = baseElement.Descendants("Duplicate");
+                return duplicateNodes.Select(GetDuplicate).ToArray();
+            }
         }
 
         private static Duplicate GetDuplicate(XElement duplicateNode)

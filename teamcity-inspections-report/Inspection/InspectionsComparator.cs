@@ -15,6 +15,10 @@ namespace teamcity_inspections_report.Inspection
         private readonly string _formerInspection;
         private readonly string _currentInspection;
         private readonly string _threshold;
+        private Issue[] _cacheNewIssues;
+        private Issue[] _cacheRemovedIssues;
+        private Issue[] _cacheCurrentIssues;
+        private bool _cache;
 
         public InspectionsComparator(string formerInspection, string currentInspection, string threshold)
         {
@@ -25,19 +29,28 @@ namespace teamcity_inspections_report.Inspection
 
         public (Issue[] newIssues, Issue[] removedIssues, Issue[] currentIssues) GetComparison()
         {
-            var baseIssues = new Dictionary<string, Issue>();
-            if (File.Exists(_formerInspection))
+            if (!_cache)
             {
-                baseIssues = Load(_formerInspection);
+                var baseIssues = new Dictionary<string, Issue>();
+                if (File.Exists(_formerInspection))
+                {
+                    baseIssues = Load(_formerInspection);
+                }
+
+                var baseKeys = baseIssues.Keys.ToHashSet();
+                var currentIssues = Load(_currentInspection);
+                var currentKeys = currentIssues.Keys.ToHashSet();
+
+                var newIssues = currentIssues.Where(x => !baseKeys.Contains(x.Key)).Select(x => x.Value).ToArray();
+                var removedIssues = baseIssues.Where(x => !currentKeys.Contains(x.Key)).Select(x => x.Value).ToArray();
+
+                _cacheCurrentIssues = currentIssues.Values.ToArray();
+                _cacheNewIssues = newIssues;
+                _cacheRemovedIssues = removedIssues;
+                _cache = true;
             }
-            var baseKeys = baseIssues.Keys.ToHashSet();
-            var currentIssues = Load(_currentInspection);
-            var currentKeys = currentIssues.Keys.ToHashSet();
 
-            var newIssues = currentIssues.Where(x => !baseKeys.Contains(x.Key)).Select(x => x.Value).ToArray();
-            var removedIssues = baseIssues.Where(x => !currentKeys.Contains(x.Key)).Select(x => x.Value).ToArray();
-
-            return (newIssues, removedIssues, currentIssues.Values.ToArray());
+            return (_cacheNewIssues, _cacheRemovedIssues, _cacheCurrentIssues);
         }
 
         private Dictionary<string, Issue> Load(string filePath)

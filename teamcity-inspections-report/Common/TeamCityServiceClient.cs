@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -63,6 +64,17 @@ namespace teamcity_inspections_report.Common
         {
             var client = GetTeamCityClient();
             return await client.ServeBuildAsync($"buildType:{buildTypeId},status:success,state:finished,count:1", null);
+        }
+
+        public async Task<(string baseCommit, string headCommit)> ComputeCommitRange(long buildId)
+        {
+            var currentBuild = await GetTeamCityBuild(buildId);
+            var previousBuild = await GetTeamCityLastBuildOfBuildType(currentBuild.BuildTypeId);
+
+            var baseCommit = previousBuild.Revisions.Revision.First().Version;
+            var headCommit = currentBuild.Revisions.Revision.First().Version;
+
+            return (baseCommit, headCommit);
         }
 
         public async Task<string> GetTeamCityLastBuildUrlOfBuildType(string buildTypeId)

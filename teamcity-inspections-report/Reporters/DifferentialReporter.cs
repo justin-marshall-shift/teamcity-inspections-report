@@ -69,7 +69,7 @@ namespace teamcity_inspections_report.Reporters
             if (File.Exists(baseFile))
             {
                 var archive = Path.Combine(_output,
-                    $"duplicate-report-{nowUtc.AddDays(-1).ToLocalTime():yyyy_MM_dd}.xml");
+                    $"duplicate-report-{nowUtc.AddDays(-1).ToLocalTime():yyyy_MM_dd_hhmm}.xml");
                 var baseFileInfo = new FileInfo(baseFile);
                 baseFileInfo.CopyTo(archive, true);
                 Console.WriteLine($"Backup of base file to {archive}");
@@ -126,11 +126,7 @@ namespace teamcity_inspections_report.Reporters
 
                 var blamer = new GitBlamer(_gitPath);
 
-                var currentBuild = await _teamcityService.GetTeamCityBuild(_buildId);
-                var previousBuild = await _teamcityService.GetTeamCityLastBuildOfBuildType(currentBuild.BuildTypeId);
-
-                var baseCommit = previousBuild.Revisions.Revision.First().Version;
-                var headCommit = currentBuild.Revisions.Revision.First().Version;
+                var (baseCommit, headCommit) = await _teamcityService.ComputeCommitRange(_buildId);
 
                 var contributors = await blamer.GetRemovalContributors(baseCommit, headCommit, removedDuplicates, 3, file => file);
 

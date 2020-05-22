@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using teamcity_inspections_report.Common;
 using teamcity_inspections_report.Options;
@@ -28,11 +27,7 @@ namespace teamcity_inspections_report
         {
             var utcNow = DateTime.UtcNow;
 
-            var currentBuild = await _teamCityService.GetTeamCityBuild(_buildId);
-            var previousBuild = await _teamCityService.GetTeamCityLastBuildOfBuildType(currentBuild.BuildTypeId);
-
-            var baseCommit = previousBuild.Revisions.Revision.First().Version;
-            var headCommit = currentBuild.Revisions.Revision.First().Version;
+            var (baseCommit, headCommit) = await _teamCityService.ComputeCommitRange(_buildId);
 
             await GenerateReleaseNotes(baseCommit, headCommit);
 

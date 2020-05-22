@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CommandLine;
+using teamcity_inspections_report.Common;
 using teamcity_inspections_report.Options;
 using teamcity_inspections_report.Reporters;
 using teamcity_inspections_report.Validators;
@@ -13,14 +14,21 @@ namespace teamcity_inspections_report
     {
         public static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesOptions, ReleaseNotesMetadataOptions>(args)
+            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesOptions, ReleaseNotesMetadataOptions, MailTestOptions>(args)
                 .WithParsed<DifferentialOptions>(Run)
                 .WithParsed<InspectionOptions>(Run)
                 .WithParsed<DeprecatedOptions>(Run)
                 .WithParsed<BlameOptions>(Run)
                 .WithParsed<ReleaseNotesOptions>(Run)
                 .WithParsed<ReleaseNotesMetadataOptions>(Run)
+                .WithParsed<MailTestOptions>(Run)
                 .WithNotParsed(Report);
+        }
+
+        private static void Run(MailTestOptions options)
+        {
+            var mailTester = new MailTester(options);
+            mailTester.SendMail().Wait();
         }
 
         private static void Run(ReleaseNotesMetadataOptions options)
