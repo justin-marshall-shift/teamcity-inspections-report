@@ -48,6 +48,12 @@ namespace teamcity_inspections_report.Options
 
         [Option('p', "password", Required = false, Hidden = true, HelpText = "SMTP account password")]
         public string Password { get; set; }
+
+        [Option('j', "jiraLogin", Required = false, HelpText = "Jira login")]
+        public string JiraLogin { get; set; }
+
+        [Option('a', "jiraPassword", Required = false, HelpText = "Jira password")]
+        public string JiraPassword { get; set; }
     }
 
     [Verb("mail", HelpText = "Test the sending of a mail")]

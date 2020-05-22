@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using teamcity_inspections_report.Common.Jira;
 
 namespace teamcity_inspections_report.Common
 {
@@ -12,16 +13,37 @@ namespace teamcity_inspections_report.Common
         private readonly string _login;
         private readonly string _password;
         private const string JiraUrl = "https://jira.shift-technology.com/rest/api/latest";
+        public bool IsSetUp { get; }
 
         public JiraService(string login, string password)
         {
             _login = login;
             _password = password;
+            IsSetUp = !string.IsNullOrEmpty(_login) && !string.IsNullOrEmpty(_password);
         }
 
-        public bool Noop()
+        public async Task<bool> Noop()
         {
-            return false;
+            try
+            {
+                var response = await SendRequest<JiraRequestBase, JiraSelfResponse>(HttpMethod.Get, "/myself", new JiraRequestBase());
+                return response.IsActive;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private async Task CreateTask(string[] strings)
+        {
+            var request = new JiraIssueRequest
+            {
+
+            };
+            var response = await SendRequest<JiraIssueRequest, JiraIssueResponse>(HttpMethod.Post, "/issues", request);
+
+            Console.WriteLine($"Issue {response.Id} was created");
         }
 
         private async Task<TResponse> SendRequest<TRequest, TResponse>(HttpMethod method, string endpoint, TRequest request)
@@ -34,6 +56,8 @@ namespace teamcity_inspections_report.Common
                 var basicToken = Convert.ToBase64String(bytes);
 
                 message.Headers.Authorization = new AuthenticationHeaderValue("Basic", basicToken);
+                message.Headers.Add("Accept", "application/json");
+                message.Headers.Add("Content-Type", "application/json");
 
                 if (request != null)
                 {

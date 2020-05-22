@@ -23,6 +23,7 @@ namespace teamcity_inspections_report.Reporters
         private readonly string _gitPath;
         private readonly string _relativeSolutionPath;
         private readonly SoftwareQualityMailNotifier _mailNotifier;
+        private readonly JiraService _jira;
 
         private readonly Dictionary<int, string> _ranks = new Dictionary<int, string>
         {
@@ -42,6 +43,8 @@ namespace teamcity_inspections_report.Reporters
             _gitPath = options.Git;
             _relativeSolutionPath = options.Solution;
             _mailNotifier = new SoftwareQualityMailNotifier(options.Login, options.Password);
+
+            _jira = new JiraService(options.JiraLogin, options.JiraPassword);
         }
 
         public async Task RunAsync()
@@ -103,10 +106,17 @@ namespace teamcity_inspections_report.Reporters
         private async Task CreateJiraTasks(InspectionsComparator comparer)
         {
             await Task.Yield();
+            if (!_jira.IsSetUp || await _jira.Noop())
+            {
+                Console.WriteLine("Jira access is not correctly set up. This step will be skip.");
+                return;
+            }
+
             Console.WriteLine("Jira tasks creation [WIP]");
 
             try
             {
+                
                 Console.WriteLine("End of Jira tasks creation");
             }
             catch (Exception e)
