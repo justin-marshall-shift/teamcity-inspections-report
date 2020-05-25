@@ -14,12 +14,11 @@ namespace teamcity_inspections_report
     {
         public static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesOptions, ReleaseNotesMetadataOptions, MailTestOptions>(args)
+            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesMetadataOptions, MailTestOptions>(args)
                 .WithParsed<DifferentialOptions>(Run)
                 .WithParsed<InspectionOptions>(Run)
                 .WithParsed<DeprecatedOptions>(Run)
                 .WithParsed<BlameOptions>(Run)
-                .WithParsed<ReleaseNotesOptions>(Run)
                 .WithParsed<ReleaseNotesMetadataOptions>(Run)
                 .WithParsed<MailTestOptions>(Run)
                 .WithNotParsed(Report);
@@ -34,12 +33,6 @@ namespace teamcity_inspections_report
         private static void Run(ReleaseNotesMetadataOptions options)
         {
             var generator = new ReleaseNotesMetadataGenerator(options);
-            generator.RunAsync().Wait();
-        }
-
-        private static void Run(ReleaseNotesOptions options)
-        {
-            var generator = new ReleaseNotesGenerator(options);
             generator.RunAsync().Wait();
         }
 
