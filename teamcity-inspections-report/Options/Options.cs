@@ -123,34 +123,6 @@ namespace teamcity_inspections_report.Options
         public string Solution { get; set; }
     }
 
-    [Verb("releaseNotes", HelpText = "[WIP] Generate the release notes of develop")]
-    public class ReleaseNotesOptions
-    {
-        [Option('b', "build", Required = true, HelpText = "Id of the inspection build")]
-        public long BuildId { get; set; }
-
-        [Option('u', "url", Required = true, HelpText = "TeamCity server url.")]
-        public string TeamCityUrl { get; set; }
-
-        [Option('t', "token", Required = true, HelpText = "TeamCity REST API token.")]
-        public string TeamCityToken { get; set; }
-
-        [Option('o', "output", Required = true, HelpText = "Folder where the reports will be archived")]
-        public string Output { get; set; }
-
-        [Option('a', "audit", Required = true, HelpText = "Path of the audit file")]
-        public string Audit { get; set; }
-        
-        [Option('l', "loginJira", Required = true, HelpText = "Jira login")]
-        public string Login { get; set; }
-        
-        [Option('p', "PasswordJira", Required = true, HelpText = "Jira password")]
-        public string Password { get; set; }
-
-        [Option('g', "githubToken", Required = true, HelpText = "Github access token")]
-        public string GithubToken { get; set; }
-    }
-
     [Verb("releaseNotesMetadata", HelpText = "Generate the metadata files for releases notes")]
     public class ReleaseNotesMetadataOptions
     {
@@ -168,5 +140,33 @@ namespace teamcity_inspections_report.Options
 
         [Option('w', "webhook", Required = true, HelpText = "Webhook of the room where you want to post messages")]
         public string Webhook { get; set; }
+    }
+
+    [Verb("derivation", HelpText = "Check from how long a PR derived from develop")]
+    public class DerivationOptions
+    {
+        [Option("scope", Group = "mode", HelpText = "Scope the analysis to the current branch", Required = false)]
+        public bool IsScoped { get; set; }
+
+        [Option("integral", Group = "mode", HelpText = "Scan all the active branches", Required = false)]
+        public bool IsGlobal { get; set; }
+
+        [Option('b', "build", Required = true, HelpText = "Id of the build")]
+        public long BuildId { get; set; }
+
+        [Option('u', "teamcityUrl", Required = true, HelpText = "TeamCity server url")]
+        public string TeamCityUrl { get; set; }
+
+        [Option('t', "teamcityToken", Required = true, HelpText = "TeamCity REST API token")]
+        public string TeamCityToken { get; set; }
+
+        [Option('g', "githubToken", Required = true, HelpText = "Github access token")]
+        public string GithubToken { get; set; }
+
+        [Option('r', "repository", Required = true, HelpText = "Git repository path")]
+        public string Repository { get; set; }
+
+        [Option('m', "maxDerivation", Required = true, HelpText = "Maximum derivation in days")]
+        public int Derivation { get; set; }
     }
 }

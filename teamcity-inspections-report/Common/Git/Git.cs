@@ -1,7 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using teamcity_inspections_report.Common.GitHelper;
 
-namespace teamcity_inspections_report.Common
+namespace teamcity_inspections_report.Common.Git
 {
     public class Git
     {
@@ -12,9 +13,28 @@ namespace teamcity_inspections_report.Common
 
         public string RepositoryPath { get; }
 
+        public async Task<string> GetCommonAncestorWithDevelop(string branch)
+        {
+            var result = string.Empty;
+            var development = "develop";
+            var gitFetch = new ProcessConfig("git", $"merge-base origin/{branch} origin/{development}", (s, b) =>
+            {
+                if (!b && s != null) result = s;
+            }, RepositoryPath);
+            await ProcessUtils.RunProcess(gitFetch);
+            await Task.Delay(100);
+            return result;
+        }
+
         public async Task Checkout(string commit)
         {
-            var gitBlame = new ProcessConfig("git", $"checkout {commit}", (s, b) => { }, RepositoryPath);
+            var gitFetch = new ProcessConfig("git", $"checkout {commit}", (s, b) => { }, RepositoryPath);
+            await ProcessUtils.RunProcess(gitFetch);
+        }
+
+        public async Task FetchPrune()
+        {
+            var gitBlame = new ProcessConfig("git", $"fetch --prune", (s, b) => { }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
         }
 
@@ -63,6 +83,18 @@ namespace teamcity_inspections_report.Common
                 }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
             return handler.GetOutputs();
+        }
+
+        public async Task<GitLogOutput> Log(string commit)
+        {
+            var handler = new GitLogOutputHandler();
+            var gitBlame = new ProcessConfig("git",
+                $"log --date=rfc -1 {commit}", (s, b) =>
+                {
+                    if (!b) handler.ReadLine(s);
+                }, RepositoryPath);
+            await ProcessUtils.RunProcess(gitBlame);
+            return handler.GetOutputs().FirstOrDefault();
         }
     }
 }

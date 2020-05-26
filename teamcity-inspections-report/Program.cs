@@ -14,14 +14,21 @@ namespace teamcity_inspections_report
     {
         public static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesMetadataOptions, MailTestOptions>(args)
+            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesMetadataOptions, MailTestOptions, DerivationOptions>(args)
                 .WithParsed<DifferentialOptions>(Run)
                 .WithParsed<InspectionOptions>(Run)
                 .WithParsed<DeprecatedOptions>(Run)
                 .WithParsed<BlameOptions>(Run)
                 .WithParsed<ReleaseNotesMetadataOptions>(Run)
                 .WithParsed<MailTestOptions>(Run)
+                .WithParsed<DerivationOptions>(Run)
                 .WithNotParsed(Report);
+        }
+
+        private static void Run(DerivationOptions options)
+        {
+            var checker = new DerivationChecker(options);
+            checker.RunAsync().Wait();
         }
 
         private static void Run(MailTestOptions options)

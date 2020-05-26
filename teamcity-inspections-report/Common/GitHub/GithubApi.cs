@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace teamcity_inspections_report.Common
+namespace teamcity_inspections_report.Common.GitHub
 {
     [JsonConverter(typeof(StringEnumConverter))]
     public enum StatusCheckType
@@ -58,11 +58,25 @@ namespace teamcity_inspections_report.Common
             await CallApiAsync(HttpMethod.Post, $"/statuses/{commitHash}", statusCheck);
         }
 
+        public async Task<PullRequest[]> GetOpenPullRequest()
+        {
+            var response = await CallApiAsync(HttpMethod.Get, "/pulls?state=open&sort=created&direction=desc");
+            return JsonConvert.DeserializeObject<PullRequest[]>(response);
+        }
+
+        public async Task<PullRequest> GetPullRequestAsync(int prNumber)
+        {
+            var response = await CallApiAsync(HttpMethod.Get, $"/pulls/{prNumber}");
+
+            return JsonConvert.DeserializeObject<PullRequest>(response);
+        }
+
         private async Task<string> CallApiAsync<T>(HttpMethod method, string endpoint, T body)
         {
             using (var client = new HttpClient())
             {
-                var message = new HttpRequestMessage(method, $"{BaseUri}{endpoint}");
+                var api = $"{BaseUri}{endpoint}";
+                var message = new HttpRequestMessage(method, api);
                 message.Headers.Authorization = new AuthenticationHeaderValue("token", AccessToken);
                 message.Headers.UserAgent.Add(new ProductInfoHeaderValue(UserAgent, UserAgentVersion));
                 
@@ -82,6 +96,22 @@ namespace teamcity_inspections_report.Common
 
                 return await response.Content.ReadAsStringAsync();
             }
+        }
+
+        public static int? GetBranchId(string origin)
+        {
+            var branch = origin;
+
+            if (string.IsNullOrEmpty(branch))
+                return null;
+
+            if (!branch.StartsWith("refs/pull/") || !branch.EndsWith("/head"))
+                return null;
+
+            branch = branch.Substring("refs/pull/".Length, branch.Length - "refs/pull/".Length);
+            branch = branch.Substring(0, branch.Length - "/head".Length);
+
+            return int.Parse(branch);
         }
 
         private async Task<string> CallApiAsync(HttpMethod method, string endpoint)

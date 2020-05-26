@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace teamcity_inspections_report.Common.GitHelper
@@ -9,10 +10,13 @@ namespace teamcity_inspections_report.Common.GitHelper
 
         private const string AuthorPattern = "Author: (.*) <(.*)>";
         private const string Commit = "commit ";
+        private const string Date = "Date: ";
+
 
         private GitLogOutput _currentOutput;
         private string _currentAuthor;
         private string _currentAuthorMail;
+        private DateTime _currentDateTime;
 
         public void ReadLine(string line)
         {
@@ -27,6 +31,12 @@ namespace teamcity_inspections_report.Common.GitHelper
                 _currentAuthorMail = _currentOutput.AuthorMail = matches.Groups[2].Value;
             }
 
+            if (line.StartsWith(Date))
+            {
+                if (DateTime.TryParse(line.Remove(0, Date.Length).Trim(), out var date))
+                    _currentDateTime = _currentOutput.Date = date;
+            }
+
             if (line.StartsWith(Commit))
             {
                 var commit = line.Remove(0, Commit.Length).Trim();
@@ -35,7 +45,8 @@ namespace teamcity_inspections_report.Common.GitHelper
                 {
                     AuthorMail = _currentAuthorMail,
                     Author = _currentAuthor,
-                    Commit = commit
+                    Commit = commit,
+                    Date = _currentDateTime
                 };
                 _outputs.Add(_currentOutput);
             }
@@ -52,5 +63,6 @@ namespace teamcity_inspections_report.Common.GitHelper
         public string Author { get; set; }
         public string AuthorMail { get; set; }
         public string Commit { get; set; }
+        public DateTime Date { get; set; }
     }
 }

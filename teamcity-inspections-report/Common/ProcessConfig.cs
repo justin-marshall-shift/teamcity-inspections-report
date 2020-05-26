@@ -36,18 +36,15 @@ namespace teamcity_inspections_report.Common
             };
 
             var tcs = new TaskCompletionSource<int>();
+            var outputTcs = new TaskCompletionSource<int>();
+            var errorTcs = new TaskCompletionSource<int>();
+
             var externalProcess = new Process
             {
                 StartInfo = info,
                 EnableRaisingEvents = true
             };
-            externalProcess.Exited += (sender, args) =>
-            {
-                tcs.SetResult(externalProcess.ExitCode);
-                externalProcess.Dispose();
-            };
 
-            var outputTcs = new TaskCompletionSource<int>();
             externalProcess.OutputDataReceived += (sender, args) =>
             {
                 if (args != null)
@@ -60,7 +57,6 @@ namespace teamcity_inspections_report.Common
                 }
             };
 
-            var errorTcs = new TaskCompletionSource<int>();
             externalProcess.ErrorDataReceived += (sender, args) =>
             {
                 if (args != null)
@@ -73,11 +69,17 @@ namespace teamcity_inspections_report.Common
                 }
             };
 
+            externalProcess.Exited += (sender, args) =>
+            {
+                tcs.SetResult(externalProcess.ExitCode);
+                externalProcess.Dispose();
+            };
+
             externalProcess.Start();
             externalProcess.BeginOutputReadLine();
             externalProcess.BeginErrorReadLine();
-
-            _ = Task.WhenAll(outputTcs.Task, errorTcs.Task);
+            
+            _ = Task.Run(async () => await Task.WhenAll(outputTcs.Task, errorTcs.Task));
             await tcs.Task;
         }
     }

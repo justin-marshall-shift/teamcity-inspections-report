@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
-using teamcity_inspections_report.Common;
+using teamcity_inspections_report.Common.Git;
 using teamcity_inspections_report.Inspection;
 using teamcity_inspections_report.Options;
 

@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using teamcity_inspections_report.Common;
+using teamcity_inspections_report.Common.Git;
 using teamcity_inspections_report.Hangout;
 using teamcity_inspections_report.Inspection;
 using teamcity_inspections_report.Options;

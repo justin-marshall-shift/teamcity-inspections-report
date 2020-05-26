@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using teamcity_inspections_report.Common;
+using teamcity_inspections_report.Common.GitHub;
 using teamcity_inspections_report.Options;
 
 namespace teamcity_inspections_report.Validators

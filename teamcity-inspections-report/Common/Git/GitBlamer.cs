@@ -6,7 +6,7 @@ using teamcity_inspections_report.Common.GitHelper;
 using teamcity_inspections_report.Duplicates;
 using teamcity_inspections_report.Inspection;
 
-namespace teamcity_inspections_report.Common
+namespace teamcity_inspections_report.Common.Git
 {
     public class GitBlamer
     {
