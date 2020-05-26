@@ -94,6 +94,7 @@ namespace teamcity_inspections_report.Common.Git
                     if (!b) handler.ReadLine(s);
                 }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
+            await Task.Delay(100);
             return handler.GetOutputs().FirstOrDefault();
         }
     }
