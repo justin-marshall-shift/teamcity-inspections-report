@@ -16,6 +16,7 @@ namespace teamcity_inspections_report.Validators
         private readonly long _buildId;
         private readonly bool _scoped;
         private readonly int _derivation;
+        private readonly bool _dryRun;
 
         public DerivationChecker(DerivationOptions options)
         {
@@ -25,10 +26,13 @@ namespace teamcity_inspections_report.Validators
             _buildId = options.BuildId;
             _scoped = options.IsScoped;
             _derivation = options.Derivation;
+            _dryRun = options.DryRun;
         }
 
         public async Task RunAsync()
         {
+            if (_dryRun)
+                Console.WriteLine("== THIS IS A DRY-RUN ==");
             var utcNow = DateTime.UtcNow;
             if (_scoped)
             {
@@ -62,6 +66,13 @@ namespace teamcity_inspections_report.Validators
             Console.WriteLine($"Checking status for pull request \"{pullRequest.Title}\"");
             var commit = await _git.GetCommonAncestorWithDevelop(pullRequest.Head.Reference);
             Console.WriteLine($"Common ancestor is commit {commit}");
+
+            if (string.IsNullOrEmpty(commit))
+            {
+                Console.WriteLine("Could not retrieve ancestor commit");
+                return;
+            }
+
             var commitInformation = await _git.Log(commit);
             Console.WriteLine($"This commit dates from {(commitInformation?.Date.ToString("f") ?? "unknown")}");
 
@@ -92,7 +103,8 @@ namespace teamcity_inspections_report.Validators
                 status.Description = $"The branch derived from develop for more than {span.Days} days";
             }
 
-            await _github.SetStatusCheckAsync(pullRequest.Head.Commit, status);
+            if(!_dryRun)
+                await _github.SetStatusCheckAsync(pullRequest.Head.Commit, status);
         }
 
         private DateTime GetTimeLimit(DateTime now)

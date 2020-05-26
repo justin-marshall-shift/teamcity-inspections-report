@@ -151,6 +151,9 @@ namespace teamcity_inspections_report.Options
         [Option("integral", Group = "mode", HelpText = "Scan all the active branches", Required = false)]
         public bool IsGlobal { get; set; }
 
+        [Option("dry-run", HelpText = "Scan all the active branches", Required = false)]
+        public bool DryRun { get; set; }
+
         [Option('b', "build", Required = true, HelpText = "Id of the build")]
         public long BuildId { get; set; }
 
