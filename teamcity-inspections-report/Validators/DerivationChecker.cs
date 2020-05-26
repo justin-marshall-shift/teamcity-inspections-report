@@ -64,23 +64,23 @@ namespace teamcity_inspections_report.Validators
         private async Task CheckDerivationStatus(PullRequest pullRequest, DateTime now)
         {
             Console.WriteLine($"Checking status for pull request \"{pullRequest.Title}\"");
-            var commit = await _git.GetCommonAncestorWithDevelop(pullRequest.Head.Reference);
-            Console.WriteLine($"Common ancestor is commit {commit}");
-
+            var commit = await _git.GetCommonAncestorWithDevelop(pullRequest.Head.Commit);
+            
             if (string.IsNullOrEmpty(commit))
             {
                 Console.WriteLine("Could not retrieve ancestor commit");
                 return;
             }
+            Console.WriteLine($"Common ancestor is commit {commit}");
 
             var commitInformation = await _git.Log(commit);
-            Console.WriteLine($"This commit dates from {(commitInformation?.Date.ToString("f") ?? "unknown")}");
-
+            
             if (commitInformation == null)
             {
                 Console.WriteLine("Could not retrieve common commit information");
                 return;
             }
+            Console.WriteLine($"This commit dates from {commitInformation.Date:f}");
 
             var isUpToDate = commitInformation.Date >= GetTimeLimit(now);
 

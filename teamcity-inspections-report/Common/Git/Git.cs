@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using teamcity_inspections_report.Common.GitHelper;
 
@@ -13,28 +14,35 @@ namespace teamcity_inspections_report.Common.Git
 
         public string RepositoryPath { get; }
 
-        public async Task<string> GetCommonAncestorWithDevelop(string branch)
+        public async Task<string> GetCommonAncestorWithDevelop(string commit)
         {
             var result = string.Empty;
             var development = "develop";
-            var gitFetch = new ProcessConfig("git", $"merge-base origin/{branch} origin/{development}", (s, b) =>
+            var gitFetch = new ProcessConfig("git", $"merge-base {commit} origin/{development}", (s, b) =>
             {
-                if (!b && s != null) result = s;
+                if (!b && !string.IsNullOrEmpty(s)) result = s;
+                if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
             }, RepositoryPath);
             await ProcessUtils.RunProcess(gitFetch);
-            await Task.Delay(100);
+            await Task.Delay(150);
             return result;
         }
 
         public async Task Checkout(string commit)
         {
-            var gitFetch = new ProcessConfig("git", $"checkout {commit}", (s, b) => { }, RepositoryPath);
+            var gitFetch = new ProcessConfig("git", $"checkout {commit}", (s, b) =>
+            {
+                if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
+            }, RepositoryPath);
             await ProcessUtils.RunProcess(gitFetch);
         }
 
         public async Task FetchPrune()
         {
-            var gitBlame = new ProcessConfig("git", $"fetch --prune", (s, b) => { }, RepositoryPath);
+            var gitBlame = new ProcessConfig("git", $"fetch --prune", (s, b) =>
+            {
+                if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
+            }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
         }
 
@@ -44,6 +52,7 @@ namespace teamcity_inspections_report.Common.Git
             var gitBlame = new ProcessConfig("git", $"blame {filePath} -p", (s, b) =>
             {
                 if (!b) handler.ReadLine(s);
+                if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
             }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
             return handler.GetOutputs();
@@ -56,6 +65,7 @@ namespace teamcity_inspections_report.Common.Git
                 (s, b) =>
                 {
                     if (!b) handler.ReadLine(s);
+                    if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
                 }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
             return handler.GetOutputs();
@@ -68,6 +78,7 @@ namespace teamcity_inspections_report.Common.Git
                 $"log --reverse --ancestry-path {baseCommit}..{headCommit} {filePath}", (s, b) =>
                 {
                     if (!b) handler.ReadLine(s);
+                    if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
                 }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
             return handler.GetOutputs();
@@ -80,6 +91,7 @@ namespace teamcity_inspections_report.Common.Git
                 $"log --ancestry-path {baseCommit}..{headCommit} -L {lines.Start},{lines.End}:{filePath}", (s, b) =>
                 {
                     if (!b) handler.ReadLine(s);
+                    if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
                 }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
             return handler.GetOutputs();
@@ -92,9 +104,10 @@ namespace teamcity_inspections_report.Common.Git
                 $"log --date=rfc -1 {commit}", (s, b) =>
                 {
                     if (!b) handler.ReadLine(s);
+                    if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
                 }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
-            await Task.Delay(100);
+            await Task.Delay(150);
             return handler.GetOutputs().FirstOrDefault();
         }
     }
