@@ -41,7 +41,7 @@ namespace teamcity_inspections_report.Common.Git
         {
             var gitBlame = new ProcessConfig("git", $"fetch --prune", (s, b) =>
             {
-                if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
+                if (!string.IsNullOrEmpty(s)) Console.WriteLine($"{s}");
             }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
         }
@@ -107,8 +107,25 @@ namespace teamcity_inspections_report.Common.Git
                     if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
                 }, RepositoryPath);
             await ProcessUtils.RunProcess(gitBlame);
-            await Task.Delay(150);
+            await Task.Delay(250);
             return handler.GetOutputs().FirstOrDefault();
+        }
+
+        public async Task<DateTime?> GetCommitDate(string commit)
+        {
+            var result = string.Empty;
+            var gitBlame = new ProcessConfig("git",
+                $"show -s --format=%cD {commit}", (s, b) =>
+                {
+                    if (!b && !string.IsNullOrEmpty(s)) result = s;
+                    if (b && !string.IsNullOrEmpty(s)) Console.WriteLine($"Error git: {s}");
+                }, RepositoryPath);
+            await ProcessUtils.RunProcess(gitBlame);
+            await Task.Delay(150);
+            if (DateTime.TryParse(result, out var date))
+                return date;
+
+            return null;
         }
     }
 }

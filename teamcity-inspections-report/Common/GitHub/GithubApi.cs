@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -60,14 +61,27 @@ namespace teamcity_inspections_report.Common.GitHub
 
         public async Task<PullRequest[]> GetOpenPullRequest()
         {
-            var response = await CallApiAsync(HttpMethod.Get, "/pulls?state=open&sort=created&direction=desc");
-            return JsonConvert.DeserializeObject<PullRequest[]>(response);
+            var list = new List<PullRequest>();
+
+            var page = 1;
+            var count = 0;
+
+            do
+            {
+                var response = await CallApiAsync(HttpMethod.Get, $"/pulls?state=open&sort=created&direction=desc&page={page}");
+                var prs = JsonConvert.DeserializeObject<PullRequest[]>(response);
+                list.AddRange(prs);
+                count = prs.Length;
+                page++;
+
+            } while (count > 0);
+
+            return list.ToArray();
         }
 
         public async Task<PullRequest> GetPullRequestAsync(int prNumber)
         {
             var response = await CallApiAsync(HttpMethod.Get, $"/pulls/{prNumber}");
-
             return JsonConvert.DeserializeObject<PullRequest>(response);
         }
 

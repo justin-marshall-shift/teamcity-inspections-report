@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
 using teamcity_inspections_report.Common;
 using teamcity_inspections_report.Common.Git;
@@ -49,6 +48,7 @@ namespace teamcity_inspections_report.Validators
             Console.WriteLine($"Checking status for build {_buildId}");
             var build = await _teamcityApi.GetTeamCityBuild(_buildId);
             var id = GithubApi.GetBranchId(build.BranchName);
+            var buildUrl = await _teamcityApi.GetTeamCityBuildUrl(_buildId, "", false);
 
             if (!id.HasValue)
             {
@@ -58,10 +58,10 @@ namespace teamcity_inspections_report.Validators
 
             var pullRequest = await _github.GetPullRequestAsync(id.Value);
 
-            await CheckDerivationStatus(pullRequest, now);
+            await CheckDerivationStatus(pullRequest, now, buildUrl);
         }
 
-        private async Task CheckDerivationStatus(PullRequest pullRequest, DateTime now)
+        private async Task CheckDerivationStatus(PullRequest pullRequest, DateTime now, string buildUrl)
         {
             Console.WriteLine($"Checking status for pull request \"{pullRequest.Title}\"");
             var commit = await _git.GetCommonAncestorWithDevelop(pullRequest.Head.Commit);
@@ -73,20 +73,20 @@ namespace teamcity_inspections_report.Validators
             }
             Console.WriteLine($"Common ancestor is commit {commit}");
 
-            var commitInformation = await _git.Log(commit);
+            var commitDate = await _git.GetCommitDate(commit);
             
-            if (commitInformation == null)
+            if (!commitDate.HasValue)
             {
-                Console.WriteLine("Could not retrieve common commit information");
+                Console.WriteLine("Could not retrieve commit date");
                 return;
             }
-            Console.WriteLine($"This commit dates from {commitInformation.Date:f}");
+            Console.WriteLine($"This commit dates from {commitDate.Value:f}");
 
-            var isUpToDate = commitInformation.Date >= GetTimeLimit(now);
+            var isUpToDate = commitDate.Value >= GetTimeLimit(now);
 
             var status = new StatusCheck
             {
-                TargetUrl = await _teamcityApi.GetTeamCityBuildUrl(_buildId, "", false),
+                TargetUrl = buildUrl,
                 Context = "Is latest integration of main branch recent (develop)"
             };
             if (isUpToDate)
@@ -97,7 +97,7 @@ namespace teamcity_inspections_report.Validators
             }
             else
             {
-                var span = now - commitInformation.Date;
+                var span = now - commitDate.Value;
                 Console.WriteLine($"    \"{pullRequest.Title}\" derived for more than {span.Days} days");
                 status.State = StatusCheckType.failure;
                 status.Description = $"The branch derived from develop for more than {span.Days} days";
@@ -116,11 +116,23 @@ namespace teamcity_inspections_report.Validators
         {
             var pullRequests = await _github.GetOpenPullRequest();
 
-            await _git.FetchPrune();
+            Console.WriteLine($"We retrieve {pullRequests.Length} active pull requests from GitHub");
+            var buildUrl = await _teamcityApi.GetTeamCityBuildUrl(_buildId, "", false);
 
-            foreach (var pullRequest in pullRequests.Where(p => p.Creation <= GetTimeLimit(now)))
+            var total = pullRequests.Length;
+            var index = 0;
+
+            foreach (var pullRequest in pullRequests)
             {
-                await CheckDerivationStatus(pullRequest, now);
+                index++;
+                if (pullRequest.Creation >= GetTimeLimit(now))
+                {
+                    Console.WriteLine($"=== ({index}/{total}) PR '{pullRequest.Title}' is recent, we will not check it");
+                    continue;
+                }
+
+                Console.WriteLine($"=== ({index}/{total}) PR '{pullRequest.Title}' was created on {pullRequest.Creation:f}, we will check it");
+                await CheckDerivationStatus(pullRequest, now, buildUrl);
             }
         }
     }
