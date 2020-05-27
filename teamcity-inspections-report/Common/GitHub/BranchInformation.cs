@@ -1,6 +1,6 @@
 ﻿using CsvHelper.Configuration.Attributes;
 
-namespace Teamcity_inspections_report.Common.GitHub
+namespace ToolKit.Common.GitHub
 {
     public class BranchInformation
     {

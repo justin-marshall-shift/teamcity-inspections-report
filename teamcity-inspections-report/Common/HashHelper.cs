@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace teamcity_inspections_report.Common
+namespace ToolKit.Common
 {
     public static class HashHelper
     {

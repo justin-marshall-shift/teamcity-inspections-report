@@ -1,4 +1,4 @@
-﻿namespace teamcity_inspections_report.Common
+﻿namespace ToolKit.Common
 {
     public class Range
     {

@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
-using teamcity_inspections_report.Options;
+using ToolKit.Options;
 
-namespace teamcity_inspections_report.Common
+namespace ToolKit.Common
 {
     public class MailTester
     {

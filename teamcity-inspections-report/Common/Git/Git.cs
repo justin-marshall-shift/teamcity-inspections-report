@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using teamcity_inspections_report.Common.GitHelper;
+using ToolKit.Common.GitHelper;
 
-namespace teamcity_inspections_report.Common.Git
+namespace ToolKit.Common.Git
 {
     public class Git
     {

@@ -4,9 +4,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using teamcity_inspections_report.Common.Jira;
 
-namespace teamcity_inspections_report.Common
+namespace ToolKit.Common.Jira
 {
     public class JiraService
     {

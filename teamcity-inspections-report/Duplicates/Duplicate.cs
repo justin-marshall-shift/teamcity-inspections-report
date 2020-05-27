@@ -1,6 +1,6 @@
-﻿using teamcity_inspections_report.Common;
+﻿using ToolKit.Common;
 
-namespace teamcity_inspections_report.Duplicates
+namespace ToolKit.Duplicates
 {
     public class Duplicate
     {

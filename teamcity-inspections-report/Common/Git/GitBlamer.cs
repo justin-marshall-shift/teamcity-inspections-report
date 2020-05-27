@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using teamcity_inspections_report.Common.GitHelper;
-using teamcity_inspections_report.Duplicates;
-using teamcity_inspections_report.Inspection;
+using ToolKit.Common.GitHelper;
+using ToolKit.Duplicates;
+using ToolKit.Inspection;
 
-namespace teamcity_inspections_report.Common.Git
+namespace ToolKit.Common.Git
 {
     public class GitBlamer
     {

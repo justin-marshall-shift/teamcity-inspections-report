@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace teamcity_inspections_report.Common.GitHub
+namespace ToolKit.Common.GitHub
 {
     [JsonConverter(typeof(StringEnumConverter))]
     public enum StatusCheckType
@@ -64,7 +64,7 @@ namespace teamcity_inspections_report.Common.GitHub
             var list = new List<PullRequest>();
 
             var page = 1;
-            var count = 0;
+            int count;
 
             do
             {

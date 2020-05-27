@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace teamcity_inspections_report.Common.GitHelper
+namespace ToolKit.Common.GitHelper
 {
     public class GitLogOutputHandler
     {

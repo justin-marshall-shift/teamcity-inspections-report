@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace teamcity_inspections_report.Hangout
+namespace ToolKit.Common.Hangout
 {
     public class HangoutSimpleMessage
     {

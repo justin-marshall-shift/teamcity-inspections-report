@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using CommandLine;
 
-namespace teamcity_inspections_report.Options
+namespace ToolKit.Options
 {
     [Verb("duplicates", HelpText = "Compute and report the differential of duplication analysis.")]
     public class DifferentialOptions
@@ -174,5 +174,27 @@ namespace teamcity_inspections_report.Options
 
         [Option('o', "output", Required = false, HelpText = "Output folder")]
         public string Output { get; set; }
+    }
+
+    [Verb("deep", HelpText = "Deep monitoring of the TeamCity server build queue + build duration.")]
+    public class DeepMonitorOptions
+    {
+        [Option('u', "url", Required = true, HelpText = "TeamCity server url.")]
+        public string Url { get; set; }
+
+        [Option('t', "token", Required = true, HelpText = "TeamCity REST API token.")]
+        public string Token { get; set; }
+
+        [Option('f', "folder", Required = true, HelpText = "Path to the folder where statistics will be dumped.")]
+        public string Folder { get; set; }
+
+        [Option('d', "duration", Required = false, HelpText = "Define the duration of your monitoring in hours.")]
+        public int Duration { get; set; }
+
+        [Option('p', "period", Required = true, HelpText = "Define the time between two samplings in minutes.")]
+        public int Period { get; set; }
+
+        [Option('g', "githubaccesstoken", Required = true, HelpText = "Github access token.")]
+        public string GitHubToken { get; set; }
     }
 }

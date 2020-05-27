@@ -1,6 +1,6 @@
 ﻿using CsvHelper.Configuration.Attributes;
 
-namespace teamcity_inspections_report.Inspection
+namespace ToolKit.Inspection
 {
     public class ProjectThreshold
     {

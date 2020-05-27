@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using teamcity_inspections_report.Common;
-using teamcity_inspections_report.Common.GitHub;
-using teamcity_inspections_report.Options;
+using ToolKit.Common.GitHub;
+using ToolKit.Common.TeamCity;
+using ToolKit.Options;
 
-namespace teamcity_inspections_report.Validators
+namespace ToolKit.Validators
 {
     public class GithubStatusValidator
     {

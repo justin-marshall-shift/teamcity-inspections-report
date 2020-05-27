@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
-using teamcity_inspections_report.Hangout;
 
-namespace teamcity_inspections_report.Common
+namespace ToolKit.Common.Hangout
 {
     public static class CardBuilderHelper
     {

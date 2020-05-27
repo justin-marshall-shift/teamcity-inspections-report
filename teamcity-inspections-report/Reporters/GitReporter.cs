@@ -1,11 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
-using teamcity_inspections_report.Common.Git;
-using teamcity_inspections_report.Inspection;
-using teamcity_inspections_report.Options;
+using ToolKit.Common.Git;
+using ToolKit.Inspection;
+using ToolKit.Options;
 
-namespace teamcity_inspections_report.Reporters
+namespace ToolKit.Reporters
 {
     public class GitReporter
     {

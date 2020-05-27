@@ -4,7 +4,7 @@
 // </auto-generated>
 //----------------------
 
-namespace teamcity_inspections_report.TeamCityService
+namespace ToolKit.TeamCityService
 {
     #pragma warning disable
 

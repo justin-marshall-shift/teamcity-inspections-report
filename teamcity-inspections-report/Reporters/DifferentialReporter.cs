@@ -2,22 +2,20 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using teamcity_inspections_report.Common;
-using teamcity_inspections_report.Common.Git;
-using teamcity_inspections_report.Duplicates;
-using teamcity_inspections_report.Hangout;
-using teamcity_inspections_report.Options;
+using ToolKit.Common.Git;
+using ToolKit.Common.Hangout;
+using ToolKit.Common.TeamCity;
+using ToolKit.Duplicates;
+using ToolKit.Options;
 using File = System.IO.File;
 
-namespace teamcity_inspections_report.Reporters
+namespace ToolKit.Reporters
 {
     public class DifferentialReporter
     {
         private readonly string _currentFilePath;
-        private readonly string _webhook;
+        private readonly HangoutService _hangOutService;
         private readonly long _buildId;
         private readonly string _output;
         private readonly string _gitPath;
@@ -34,7 +32,7 @@ namespace teamcity_inspections_report.Reporters
         {
             _currentFilePath = file;
             _teamcityService = new TeamCityServiceClient(options.TeamCityUrl, options.TeamCityToken);
-            _webhook = options.Webhook;
+            _hangOutService = new HangoutService(options.Webhook);
             _buildId = options.BuildId;
             _output = options.Output;
             _gitPath = options.Git;
@@ -50,22 +48,7 @@ namespace teamcity_inspections_report.Reporters
             
             var nowUtc = DateTime.UtcNow;
 
-            using (var httpClient = new HttpClient())
-            {
-                foreach (var message in await GetMessages(comparer, nowUtc))
-                {
-                    Console.WriteLine($"Webhook: {_webhook}");
-                    var response = await httpClient.PostAsync(_webhook, message);
-
-                    Console.WriteLine($"Response: {response.StatusCode.ToString()}");
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        Console.WriteLine(await response.Content.ReadAsStringAsync());
-                        return;
-                    }
-                }
-            }
+            await _hangOutService.SendCards(await GetMessages(comparer, nowUtc));
 
             if (File.Exists(baseFile))
             {
@@ -97,7 +80,7 @@ namespace teamcity_inspections_report.Reporters
             };
         }
 
-        private async Task<HttpContent[]> GetMessages(DuplicateComparator comparator, DateTime nowUtc)
+        private async Task<HangoutCard[]> GetMessages(DuplicateComparator comparator, DateTime nowUtc)
         {
             Console.WriteLine("Creating header section of message");
             var card = await GetReportCard(comparator, nowUtc);
@@ -107,16 +90,7 @@ namespace teamcity_inspections_report.Reporters
             if (card2 != null)
                 cards.Add(card2);
 
-            var content = JsonConvert.SerializeObject(new HangoutCardMessage
-            {
-                Cards = cards.ToArray()
-            }, new JsonSerializerSettings
-            {
-                DefaultValueHandling = DefaultValueHandling.Ignore
-            });
-
-            Console.WriteLine($"Sending message to Hangout:\r\n{content}");
-            return new HttpContent[] { new StringContent(content) };
+            return cards.ToArray();
         }
 
         private async Task<HangoutCard> GetLeaderBoardCard(DuplicateComparator comparator)

@@ -6,9 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using CsvHelper;
-using teamcity_inspections_report.Common;
+using ToolKit.Common;
 
-namespace teamcity_inspections_report.Inspection
+namespace ToolKit.Inspection
 {
     public class InspectionsComparator
     {

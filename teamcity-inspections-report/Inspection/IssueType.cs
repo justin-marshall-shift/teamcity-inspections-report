@@ -1,5 +1,5 @@
 ﻿// ReSharper disable InconsistentNaming
-namespace teamcity_inspections_report.Inspection
+namespace ToolKit.Inspection
 {
     public enum Severity
     {

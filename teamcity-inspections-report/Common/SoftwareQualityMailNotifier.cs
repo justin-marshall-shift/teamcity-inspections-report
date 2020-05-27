@@ -2,7 +2,7 @@
 using System.Net.Mail;
 using System.Threading.Tasks;
 
-namespace teamcity_inspections_report.Common
+namespace ToolKit.Common
 {
     public class SoftwareQualityMailNotifier
     {

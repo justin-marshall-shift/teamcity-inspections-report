@@ -2,11 +2,12 @@
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using teamcity_inspections_report.TeamCityService;
+using ToolKit.TeamCityService;
 
-namespace teamcity_inspections_report.Common
+namespace ToolKit.Common.TeamCity
 {
     public class TeamCityServiceClient
     {
@@ -26,6 +27,12 @@ namespace teamcity_inspections_report.Common
             return TeamCityBuildUrl(tab, withRedirect, build);
         }
 
+        public async Task<Agents> GetTeamCityAgents(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var client = GetTeamCityClient();
+            return await client.ServeAgentsAsync(null, null, null, "count,agent(id,name,enabled,authorized,build)", cancellationToken);
+        }
+
         private static string TeamCityBuildUrl(string tab, bool withRedirect, Build build)
         {
             var uriBuilder = new UriBuilder(build.WebUrl) { Scheme = Uri.UriSchemeHttp };
@@ -38,10 +45,16 @@ namespace teamcity_inspections_report.Common
             return $"https://httpbin.org/redirect-to?url={encode}";
         }
 
-        public async Task<Build> GetTeamCityBuild(long buildId)
+        public async Task<Build> GetTeamCityBuild(long buildId, CancellationToken cancellationToken = default(CancellationToken))
         {
             var client = GetTeamCityClient();
-            return await client.ServeBuildAsync($"id:{buildId}", null);
+            return await client.ServeBuildAsync($"id:{buildId}", null, cancellationToken);
+        }
+
+        public async Task<Builds> GetTeamCityQueuedBuilds(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var client = GetTeamCityClient();
+            return await client.GetBuildsAsync(null, null, cancellationToken);
         }
 
         private Client GetTeamCityClient()

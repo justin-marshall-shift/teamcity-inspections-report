@@ -2,19 +2,21 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using CommandLine;
-using teamcity_inspections_report.Common;
-using teamcity_inspections_report.Options;
-using teamcity_inspections_report.Reporters;
-using teamcity_inspections_report.Validators;
+using ToolKit.Common;
+using ToolKit.Monitoring;
+using ToolKit.Options;
+using ToolKit.Reporters;
+using ToolKit.Validators;
 
-namespace teamcity_inspections_report
+namespace ToolKit
 {
     public class Program
     {
         public static void Main(string[] args)
         {
-            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesMetadataOptions, MailTestOptions, DerivationOptions>(args)
+            Parser.Default.ParseArguments<DifferentialOptions, InspectionOptions, DeprecatedOptions, BlameOptions, ReleaseNotesMetadataOptions, MailTestOptions, DerivationOptions, DeepMonitorOptions>(args)
                 .WithParsed<DifferentialOptions>(Run)
                 .WithParsed<InspectionOptions>(Run)
                 .WithParsed<DeprecatedOptions>(Run)
@@ -22,7 +24,32 @@ namespace teamcity_inspections_report
                 .WithParsed<ReleaseNotesMetadataOptions>(Run)
                 .WithParsed<MailTestOptions>(Run)
                 .WithParsed<DerivationOptions>(Run)
+                .WithParsed<DeepMonitorOptions>(Run)
                 .WithNotParsed(Report);
+        }
+
+        private static void Run(DeepMonitorOptions options)
+        {
+            var monitor = new DeepMonitor(options);
+
+            var cancellationTokenSource = new CancellationTokenSource();
+
+            if (options.Duration > 0)
+                cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromHours(options.Duration));
+
+            try
+            {
+                Console.WriteLine("Beginning of deep monitoring");
+                monitor.RunAsync(options.Period, cancellationTokenSource.Token).Wait(cancellationTokenSource.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore
+            }
+            finally
+            {
+                Console.WriteLine("End of deep monitoring");
+            }
         }
 
         private static void Run(DerivationOptions options)

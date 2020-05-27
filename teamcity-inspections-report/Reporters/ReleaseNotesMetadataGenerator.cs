@@ -1,27 +1,27 @@
 ﻿using System;
 using System.IO;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using teamcity_inspections_report.Common;
-using teamcity_inspections_report.Hangout;
-using teamcity_inspections_report.Options;
+using ToolKit.Common;
+using ToolKit.Common.Hangout;
+using ToolKit.Common.TeamCity;
+using ToolKit.Options;
 
-namespace teamcity_inspections_report.Reporters
+namespace ToolKit.Reporters
 {
     public class ReleaseNotesMetadataGenerator
     {
         private readonly TeamCityServiceClient _teamCityService;
         private readonly long _buildId;
         private readonly string _path;
-        private readonly string _webhook;
+        private readonly HangoutService _hangout;
 
         public ReleaseNotesMetadataGenerator(ReleaseNotesMetadataOptions options)
         {
             _teamCityService = new TeamCityServiceClient(options.TeamCityUrl, options.TeamCityToken);
             _buildId = options.BuildId;
             _path = options.Metadata;
-            _webhook = options.Webhook;
+            _hangout = new HangoutService(options.Webhook);
         }
 
         public async Task RunAsync()
@@ -46,36 +46,15 @@ namespace teamcity_inspections_report.Reporters
                 await writer.FlushAsync();
             }
 
-            using (var httpClient = new HttpClient())
-            {
-                var message = await GetMessage(DateTime.UtcNow);
-                Console.WriteLine($"Webhook: {_webhook}");
-                var response = await httpClient.PostAsync(_webhook, message);
-
-                Console.WriteLine($"Response: {response.StatusCode.ToString()}");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine(await response.Content.ReadAsStringAsync());
-                }
-            }
+            await _hangout.SendCards(await GetMessages(DateTime.UtcNow));
         }
 
-        private async Task<HttpContent> GetMessage(DateTime utcNow)
+        private async Task<HangoutCard[]> GetMessages(DateTime utcNow)
         {
             Console.WriteLine("Creating header section of message");
             var card = await GetReportCard(utcNow);
 
-            var content = JsonConvert.SerializeObject(new HangoutCardMessage
-            {
-                Cards = new []{ card }
-            }, new JsonSerializerSettings
-            {
-                DefaultValueHandling = DefaultValueHandling.Ignore
-            });
-
-            Console.WriteLine($"Sending message to Hangout:\r\n{content}");
-            return new StringContent(content);
+            return new[] { card };
         }
 
         private async Task<HangoutCard> GetReportCard(DateTime utcNow)

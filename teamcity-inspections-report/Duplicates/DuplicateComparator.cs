@@ -3,9 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
-using teamcity_inspections_report.Common;
+using ToolKit.Common;
 
-namespace teamcity_inspections_report.Duplicates
+namespace ToolKit.Duplicates
 {
     public class DuplicateComparator
     {

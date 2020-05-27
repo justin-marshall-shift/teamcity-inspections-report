@@ -1,4 +1,4 @@
-﻿namespace teamcity_inspections_report.Inspection
+﻿namespace ToolKit.Inspection
 {
     public class ProjectState
     {

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace teamcity_inspections_report.Common.Jira
+namespace ToolKit.Common.Jira
 {
     public class JiraIssueResponse
     {

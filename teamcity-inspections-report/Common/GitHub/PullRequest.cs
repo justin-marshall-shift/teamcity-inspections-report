@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace teamcity_inspections_report.Common.GitHub
+namespace ToolKit.Common.GitHub
 {
     public class PullRequest
     {
@@ -15,6 +15,14 @@ namespace teamcity_inspections_report.Common.GitHub
         public DateTime Creation { get; set; }
         [JsonProperty("head")]
         public PullRequestHead Head { get; set; }
+        [JsonProperty("url")]
+        public string Url { get; set; }
+        [JsonProperty("state")]
+        public string State { get; set; }
+        [JsonProperty("closed_at")]
+        public DateTime Cloture { get; set; }
+        [JsonProperty("merged_at")]
+        public DateTime Merge { get; set; }
 
 
         internal string LastDevelopCommit { get; set; }
