@@ -167,6 +167,17 @@ namespace teamcity_inspections_report.Validators
                     NewLine = NewLine.CRLF
                 };
 
+                var details = pullRequests.Select(p => new BranchInformation
+                {
+                    Creation = p.Creation.ToUniversalTime().ToString("o"),
+                    Id = p.Number,
+                    IsWip = p.Title.Contains("[WIP]"),
+                    Title = p.Title,
+                    Commit = p.LastDevelopCommit,
+                    DevMerge = p.LastDevelopMerge?.ToUniversalTime().ToString("o") ?? string.Empty,
+                    Derivation = p.LastDevelopMerge.HasValue ? (now - p.LastDevelopMerge.Value).Days : -1
+                }).ToArray();
+
                 var path = Path.Combine(_output,$"active_branches_{now.ToLocalTime():yyyy_MM_dd_hhmm}.csv");
 
                 using (var stream = File.OpenWrite(path))
@@ -175,16 +186,7 @@ namespace teamcity_inspections_report.Validators
                 {
                     csvWriter.WriteHeader<BranchInformation>();
                     await csvWriter.NextRecordAsync();
-                    await csvWriter.WriteRecordsAsync(pullRequests.Select(p => new BranchInformation
-                    {
-                        Creation = p.Creation.ToUniversalTime().ToString("o"),
-                        Id = p.Number,
-                        IsWip = p.Title.Contains("[WIP]"),
-                        Title = p.Title,
-                        Commit = p.LastDevelopCommit,
-                        DevMerge = p.LastDevelopMerge?.ToUniversalTime().ToString("o") ?? string.Empty,
-                        Derivation = p.LastDevelopMerge.HasValue ? (now - p.LastDevelopMerge.Value).Days : -1
-                    }));
+                    await csvWriter.WriteRecordsAsync(details);
                     await csvWriter.FlushAsync();
                 }
             }
