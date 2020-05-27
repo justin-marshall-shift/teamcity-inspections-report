@@ -1,8 +1,15 @@
 ﻿using System;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+using CsvHelper;
+using CsvHelper.Configuration;
 using teamcity_inspections_report.Common;
 using teamcity_inspections_report.Common.Git;
 using teamcity_inspections_report.Common.GitHub;
+using Teamcity_inspections_report.Common.GitHub;
 using teamcity_inspections_report.Options;
 
 namespace teamcity_inspections_report.Validators
@@ -16,6 +23,7 @@ namespace teamcity_inspections_report.Validators
         private readonly bool _scoped;
         private readonly int _derivation;
         private readonly bool _dryRun;
+        private readonly string _output;
 
         public DerivationChecker(DerivationOptions options)
         {
@@ -26,6 +34,7 @@ namespace teamcity_inspections_report.Validators
             _scoped = options.IsScoped;
             _derivation = options.Derivation;
             _dryRun = options.DryRun;
+            _output = options.Output;
         }
 
         public async Task RunAsync()
@@ -33,12 +42,15 @@ namespace teamcity_inspections_report.Validators
             if (_dryRun)
                 Console.WriteLine("== THIS IS A DRY-RUN ==");
             var utcNow = DateTime.UtcNow;
+            Console.WriteLine("Fetch remote branches");
+            
             if (_scoped)
             {
                 await CheckCurrentBranch(utcNow);
             }
             else
             {
+                await _git.FetchPrune();
                 await CheckAllBranches(utcNow);
             }
         }
@@ -71,6 +83,8 @@ namespace teamcity_inspections_report.Validators
                 Console.WriteLine("Could not retrieve ancestor commit");
                 return;
             }
+
+            pullRequest.LastDevelopCommit = commit;
             Console.WriteLine($"Common ancestor is commit {commit}");
 
             var commitDate = await _git.GetCommitDate(commit);
@@ -80,6 +94,8 @@ namespace teamcity_inspections_report.Validators
                 Console.WriteLine("Could not retrieve commit date");
                 return;
             }
+
+            pullRequest.LastDevelopMerge = commitDate;
             Console.WriteLine($"This commit dates from {commitDate.Value:f}");
 
             var isUpToDate = commitDate.Value >= GetTimeLimit(now);
@@ -87,7 +103,7 @@ namespace teamcity_inspections_report.Validators
             var status = new StatusCheck
             {
                 TargetUrl = buildUrl,
-                Context = "Is latest integration of main branch recent (develop)"
+                Context = "Recent merge from develop"
             };
             if (isUpToDate)
             {
@@ -133,6 +149,44 @@ namespace teamcity_inspections_report.Validators
 
                 Console.WriteLine($"=== ({index}/{total}) PR '{pullRequest.Title}' was created on {pullRequest.Creation:f}, we will check it");
                 await CheckDerivationStatus(pullRequest, now, buildUrl);
+            }
+
+            await SaveActiveBranches(pullRequests, now);
+        }
+
+        private async Task SaveActiveBranches(PullRequest[] pullRequests, DateTime now)
+        {
+            await Task.Yield();
+            if (!string.IsNullOrEmpty(_output))
+            {
+                var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    Delimiter = ";",
+                    ShouldQuote = (s, context) => true,
+                    IgnoreBlankLines = true,
+                    NewLine = NewLine.CRLF
+                };
+
+                var path = Path.Combine(_output,$"active_branches_{now.ToLocalTime():yyyy_MM_dd_hhmm}.csv");
+
+                using (var stream = File.OpenWrite(path))
+                using (var writer = new StreamWriter(stream, Encoding.UTF8))
+                using (var csvWriter = new CsvWriter(writer, configuration))
+                {
+                    csvWriter.WriteHeader<BranchInformation>();
+                    await csvWriter.NextRecordAsync();
+                    await csvWriter.WriteRecordsAsync(pullRequests.Select(p => new BranchInformation
+                    {
+                        Creation = p.Creation.ToUniversalTime().ToString("o"),
+                        Id = p.Number,
+                        IsWip = p.Title.Contains("[WIP]"),
+                        Title = p.Title,
+                        Commit = p.LastDevelopCommit,
+                        DevMerge = p.LastDevelopMerge?.ToUniversalTime().ToString("o") ?? string.Empty,
+                        Derivation = p.LastDevelopMerge.HasValue ? (now - p.LastDevelopMerge.Value).Days : -1
+                    }));
+                    await csvWriter.FlushAsync();
+                }
             }
         }
     }

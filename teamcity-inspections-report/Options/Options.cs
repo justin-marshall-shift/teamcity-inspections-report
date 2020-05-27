@@ -171,5 +171,8 @@ namespace teamcity_inspections_report.Options
 
         [Option('m', "maxDerivation", Required = true, HelpText = "Maximum derivation in days")]
         public int Derivation { get; set; }
+
+        [Option('o', "output", Required = false, HelpText = "Output folder")]
+        public string Output { get; set; }
     }
 }
